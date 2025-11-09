@@ -1,7 +1,7 @@
 import {Card} from '@sanity/ui'
-import {ImageGeneratorContent} from './ImageGeneratorContent'
+import {ImageGeneratorContent} from './ImageGeneratorContent.js'
 import type {AssetSource, AssetFromSource} from 'sanity'
-import type {SanityImageAsset} from '../types'
+import type {SanityImageAsset} from '../types.js'
 
 interface GeminiAssetSourceComponentProps {
   onSelect: (assets: AssetFromSource[]) => void

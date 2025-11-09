@@ -1,7 +1,7 @@
 import {useState, useCallback} from 'react'
 import {useClient} from 'sanity'
-import {uploadImageToSanity} from '../lib/sanity-upload'
-import type {GenerationMetadata, SanityImageAsset} from '../types'
+import {uploadImageToSanity} from '../lib/sanity-upload.js'
+import type {GenerationMetadata, SanityImageAsset} from '../types.js'
 
 export function useImageUpload() {
   const client = useClient({apiVersion: '2024-01-01'})

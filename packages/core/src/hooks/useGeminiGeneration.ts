@@ -1,5 +1,5 @@
 import {useState, useCallback} from 'react'
-import type {ImageConfig, ImageResult} from '../types'
+import type {ImageConfig, ImageResult} from '../types.js'
 
 /**
  * Hook for generating and editing images using Gemini API

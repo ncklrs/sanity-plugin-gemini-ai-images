@@ -1,6 +1,6 @@
 import {definePlugin} from 'sanity'
-import {createGeminiAssetSource} from './components/GeminiAssetSource'
-import type {GeminiPluginConfig} from './types'
+import {createGeminiAssetSource} from './components/GeminiAssetSource.js'
+import type {GeminiPluginConfig} from './types.js'
 
 /**
  * Gemini AI Image Generator Plugin
@@ -36,20 +36,20 @@ export const geminiAIImages = definePlugin<GeminiPluginConfig | void>((config) =
 })
 
 // Export types for users
-export type * from './types'
+export type * from './types.js'
 
 // Export components for advanced usage
-export {ImageGeneratorContent} from './components/ImageGeneratorContent'
-export {PromptBuilder} from './components/PromptBuilder'
-export {PresetTemplates} from './components/PresetTemplates'
-export {EditPromptTemplates} from './components/EditPromptTemplates'
-export {createGeminiAssetSource} from './components/GeminiAssetSource'
+export {ImageGeneratorContent} from './components/ImageGeneratorContent.js'
+export {PromptBuilder} from './components/PromptBuilder.js'
+export {PresetTemplates} from './components/PresetTemplates.js'
+export {EditPromptTemplates} from './components/EditPromptTemplates.js'
+export {createGeminiAssetSource} from './components/GeminiAssetSource.js'
 
 // Export hooks for advanced usage
-export {useGeminiGeneration} from './hooks/useGeminiGeneration'
-export {useImageUpload} from './hooks/useImageUpload'
+export {useGeminiGeneration} from './hooks/useGeminiGeneration.js'
+export {useImageUpload} from './hooks/useImageUpload.js'
 
 // Export utilities
-export {uploadImageToSanity} from './lib/sanity-upload'
-export {promptTemplates, templateCategories} from './lib/prompt-templates'
-export {editPromptTemplates, editTemplateCategories} from './lib/edit-prompt-templates'
+export {uploadImageToSanity} from './lib/sanity-upload.js'
+export {promptTemplates, templateCategories} from './lib/prompt-templates.js'
+export {editPromptTemplates, editTemplateCategories} from './lib/edit-prompt-templates.js'

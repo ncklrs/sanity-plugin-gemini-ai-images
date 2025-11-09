@@ -1,7 +1,7 @@
 import React from 'react'
 import {Card, Stack, Text, Grid, Button} from '@sanity/ui'
-import {promptTemplates, templateCategories} from '../lib/prompt-templates'
-import type {AspectRatio} from '../types'
+import {promptTemplates, templateCategories} from '../lib/prompt-templates.js'
+import type {AspectRatio} from '../types.js'
 
 interface PresetTemplatesProps {
   onSelectTemplate: (template: {prompt: string; aspectRatio?: AspectRatio}) => void

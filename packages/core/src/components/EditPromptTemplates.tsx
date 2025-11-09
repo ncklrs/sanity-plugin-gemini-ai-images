@@ -1,6 +1,6 @@
 import {Card, Stack, Text, Grid, Button} from '@sanity/ui'
-import {editPromptTemplates, editTemplateCategories} from '../lib/edit-prompt-templates'
-import type {AspectRatio} from '../types'
+import {editPromptTemplates, editTemplateCategories} from '../lib/edit-prompt-templates.js'
+import type {AspectRatio} from '../types.js'
 import {useState} from 'react'
 
 interface EditPromptTemplatesProps {

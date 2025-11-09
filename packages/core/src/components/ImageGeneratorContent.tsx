@@ -1,12 +1,12 @@
 import {useState, useCallback} from 'react'
 import {Stack, TextArea, Select, Button, Card, Flex, Text, Box} from '@sanity/ui'
 import {useClient} from 'sanity'
-import {useGeminiGeneration} from '../hooks/useGeminiGeneration'
-import {useImageUpload} from '../hooks/useImageUpload'
-import {PromptBuilder} from './PromptBuilder'
-import {PresetTemplates} from './PresetTemplates'
-import {EditPromptTemplates} from './EditPromptTemplates'
-import type {GenerationMode, AspectRatio, SanityImageAsset} from '../types'
+import {useGeminiGeneration} from '../hooks/useGeminiGeneration.js'
+import {useImageUpload} from '../hooks/useImageUpload.js'
+import {PromptBuilder} from './PromptBuilder.js'
+import {PresetTemplates} from './PresetTemplates.js'
+import {EditPromptTemplates} from './EditPromptTemplates.js'
+import type {GenerationMode, AspectRatio, SanityImageAsset} from '../types.js'
 
 interface ImageGeneratorContentProps {
   mode?: GenerationMode

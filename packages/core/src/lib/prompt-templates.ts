@@ -1,4 +1,4 @@
-import type {PromptTemplate} from '../types'
+import type {PromptTemplate} from '../types.js'
 
 export const promptTemplates: Record<string, PromptTemplate> = {
   productPhotography: {

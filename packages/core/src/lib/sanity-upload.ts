@@ -1,5 +1,5 @@
-import type {SanityClient} from '@sanity/client'
-import type {GenerationMetadata, SanityImageAsset} from '../types'
+import type {SanityClient} from 'sanity'
+import type {GenerationMetadata, SanityImageAsset} from '../types.js'
 
 export async function uploadImageToSanity(
   client: SanityClient,
