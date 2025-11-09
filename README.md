@@ -22,6 +22,17 @@ AI-powered image generation for Sanity Studio using Google's Gemini 2.5 Flash Im
 - **Secure Backend**: API key stays server-side only
 - **Framework Adapters**: Ready-to-use adapters for Next.js and serverless platforms
 
+## Screenshots
+
+![AI Generator in Sanity Studio](img/studio-1.png)
+*AI Generator appears directly in the image picker alongside other sources*
+
+![Text-to-Image Generation](img/studio-2.png)
+*Generate images from text prompts with templates and aspect ratio options*
+
+![Image-to-Image Editing](img/studio-3.png)
+*Upload and edit existing images with AI-powered modifications*
+
 ## Quick Start (Next.js)
 
 ### 1. Install Packages
