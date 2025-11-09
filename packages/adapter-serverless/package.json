@@ -1,0 +1,58 @@
+{
+  "name": "sanity-plugin-gemini-ai-images-serverless",
+  "version": "1.0.0",
+  "description": "Serverless adapter for Sanity Gemini AI Image Generator (Vercel, Netlify, etc.)",
+  "keywords": [
+    "sanity",
+    "sanity-plugin",
+    "gemini",
+    "ai",
+    "serverless",
+    "vercel",
+    "netlify",
+    "adapter"
+  ],
+  "homepage": "https://github.com/ncklrs/sanity-plugin-gemini-ai-images#readme",
+  "bugs": {
+    "url": "https://github.com/ncklrs/sanity-plugin-gemini-ai-images/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ncklrs/sanity-plugin-gemini-ai-images.git",
+    "directory": "packages/adapter-serverless"
+  },
+  "license": "MIT",
+  "author": "Nick Jensen",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

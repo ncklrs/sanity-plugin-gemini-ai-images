@@ -1,0 +1,61 @@
+{
+  "name": "sanity-plugin-gemini-ai-images",
+  "version": "1.0.0",
+  "description": "AI-powered image generation for Sanity Studio using Google Gemini",
+  "keywords": [
+    "sanity",
+    "sanity-plugin",
+    "gemini",
+    "ai",
+    "image-generation",
+    "text-to-image"
+  ],
+  "homepage": "https://github.com/ncklrs/sanity-plugin-gemini-ai-images#readme",
+  "bugs": {
+    "url": "https://github.com/ncklrs/sanity-plugin-gemini-ai-images/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ncklrs/sanity-plugin-gemini-ai-images.git"
+  },
+  "license": "MIT",
+  "author": "Nick Jensen",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@sanity/ui": "^2.8.0",
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "sanity": "^4.0.0",
+    "typescript": "^5.9.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "sanity": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
