@@ -197,9 +197,33 @@ The guided prompt builder helps you construct effective prompts by selecting:
 - **Camera Angle**: Eye-level, elevated, low-angle, aerial
 - **Mood**: Neutral, warm, cool, energetic, serene
 
-## Configuration
+## Advanced Features
 
-### Custom API Endpoint
+### Image Series Generation
+
+Generate multiple congruent images in one request:
+
+```typescript
+// In the Studio UI:
+// 1. Click "Image Series" tab
+// 2. Configure quantity (2-10 images)
+// 3. Select variation type (angles, contexts, backgrounds, lighting)
+// 4. Choose consistency level (strict, moderate, loose)
+// 5. Enter base prompt
+// 6. Select variation template
+// 7. Generate series
+// 8. Preview and selectively upload
+```
+
+**Use Cases:**
+- Product photography: Same product from different angles
+- Marketing assets: Consistent brand imagery with variations
+- A/B testing: Multiple options maintaining design language
+- E-commerce: Complete product image sets
+
+### Standalone Image Studio Tool
+
+Enable a dedicated generation workspace in Studio:
 
 ```typescript
 // sanity.config.ts
@@ -208,7 +232,75 @@ import { geminiAIImages } from "sanity-plugin-gemini-ai-images";
 export default defineConfig({
   plugins: [
     geminiAIImages({
-      apiEndpoint: "/api/custom/generate-image", // Custom endpoint
+      enableStandaloneTool: true, // Adds "AI Image Studio" to sidebar
+    }),
+  ],
+});
+```
+
+Access via the sidebar "AI Image Studio" tool for:
+- Bulk image generation sessions
+- Generation history
+- Workspace for creative exploration
+
+### Image Object Field Integration
+
+Add AI generation directly to image fields:
+
+```typescript
+// schemas/product.ts
+import { ImageObjectInput } from "sanity-plugin-gemini-ai-images";
+
+export default {
+  name: "product",
+  type: "document",
+  fields: [
+    {
+      name: "heroImage",
+      type: "image",
+      components: {
+        input: ImageObjectInput, // Adds "Generate with AI" button
+      },
+    },
+  ],
+};
+```
+
+Or use the inline generator:
+
+```typescript
+import { InlineGenerator } from "sanity-plugin-gemini-ai-images";
+
+// In your custom component:
+<InlineGenerator
+  onImageGenerated={(asset) => {
+    // Handle generated asset
+  }}
+/>
+```
+
+## Configuration
+
+### Full Configuration Options
+
+```typescript
+// sanity.config.ts
+import { geminiAIImages } from "sanity-plugin-gemini-ai-images";
+
+export default defineConfig({
+  plugins: [
+    geminiAIImages({
+      // API endpoint for generation
+      apiEndpoint: "/api/gemini/generate-image",
+
+      // Enable standalone tool in sidebar (default: false)
+      enableStandaloneTool: true,
+
+      // Maximum images in a series (default: 10)
+      maxSeriesQuantity: 10,
+
+      // Default consistency level (default: 'moderate')
+      defaultConsistencyLevel: "moderate", // 'strict' | 'moderate' | 'loose'
     }),
   ],
 });

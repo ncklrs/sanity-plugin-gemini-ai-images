@@ -1,5 +1,8 @@
 import {definePlugin} from 'sanity'
+import {ImageIcon} from '@sanity/icons'
+import {createElement} from 'react'
 import {createGeminiAssetSource} from './components/GeminiAssetSource.js'
+import {ImageStudioTool} from './components/standalone/ImageStudioTool.js'
 import type {GeminiPluginConfig} from './types.js'
 
 /**
@@ -11,16 +14,22 @@ import type {GeminiPluginConfig} from './types.js'
  *
  * Features:
  * - Text-to-image generation
+ * - Image series generation with congruency
  * - Prompt templates and builder
  * - Multiple aspect ratios
  * - Direct upload to Sanity assets
+ * - Optional standalone generation tool
  *
  * Configuration:
  * - apiEndpoint: API endpoint for image generation (default: '/api/gemini/generate-image')
+ * - enableStandaloneTool: Add dedicated image generation tool to Studio (default: false)
+ * - maxSeriesQuantity: Maximum images in a series (default: 10)
+ * - defaultConsistencyLevel: Default consistency for series (default: 'moderate')
  * - You must implement the backend API route (see adapter packages)
  */
 export const geminiAIImages = definePlugin<GeminiPluginConfig | void>((config) => {
   const apiEndpoint = config?.apiEndpoint || '/api/gemini/generate-image'
+  const enableStandaloneTool = config?.enableStandaloneTool ?? false
 
   return {
     name: 'sanity-plugin-gemini-ai-images',
@@ -32,6 +41,16 @@ export const geminiAIImages = definePlugin<GeminiPluginConfig | void>((config) =
         },
       },
     },
+    tools: enableStandaloneTool
+      ? [
+          {
+            name: 'ai-image-studio',
+            title: 'AI Image Studio',
+            icon: ImageIcon,
+            component: () => createElement(ImageStudioTool, {apiEndpoint}),
+          },
+        ]
+      : [],
   }
 })
 
@@ -49,6 +68,15 @@ export {createGeminiAssetSource} from './components/GeminiAssetSource.js'
 export {SeriesConfigPanel} from './components/series/SeriesConfigPanel.js'
 export {VariationTemplates} from './components/series/VariationTemplates.js'
 export {SeriesPreview} from './components/series/SeriesPreview.js'
+
+// Export standalone tool components
+export {ImageStudioTool} from './components/standalone/ImageStudioTool.js'
+export {GenerationHistory} from './components/standalone/GenerationHistory.js'
+export {BulkAssetUpload} from './components/standalone/BulkAssetUpload.js'
+
+// Export field integration components
+export {ImageObjectInput} from './components/field/ImageObjectInput.js'
+export {InlineGenerator} from './components/field/InlineGenerator.js'
 
 // Export hooks for advanced usage
 export {useGeminiGeneration} from './hooks/useGeminiGeneration.js'
