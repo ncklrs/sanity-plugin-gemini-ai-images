@@ -1,5 +1,4 @@
 import {Box, Button, Card, Flex, Heading, Stack, Text} from '@sanity/ui'
-import {useCallback} from 'react'
 import type {GenerationSession} from '../../types.js'
 
 interface GenerationHistoryProps {
@@ -9,22 +8,23 @@ interface GenerationHistoryProps {
   onClose: () => void
 }
 
+const formatDate = (timestamp: string) => {
+  const date = new Date(timestamp)
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export function GenerationHistory({
   sessions,
   onLoadSession,
   onDeleteSession,
   onClose,
 }: GenerationHistoryProps) {
-  const formatDate = useCallback((timestamp: string) => {
-    const date = new Date(timestamp)
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }, [])
 
   return (
     <Stack space={4}>

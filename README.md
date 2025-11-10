@@ -27,7 +27,7 @@ AI-powered image generation for Sanity Studio using Google's Gemini 2.5 Flash Im
   - Different Backgrounds (minimalist, outdoor, urban, textured)
   - Different Lighting (natural, dramatic, golden hour, cool tones)
 - **Consistency Levels**: Choose from strict, moderate, or loose consistency
-- **Variation Templates**: 8+ pre-built variation pattern libraries
+- **Variation Templates**: 8 template libraries with 40+ variation patterns
 - **Gallery Preview**: Review all generated images before uploading
 - **Selective Upload**: Choose which images from the series to save
 
@@ -80,6 +80,37 @@ export default defineConfig({
 import { POST } from "sanity-plugin-gemini-ai-images-nextjs/route";
 
 export { POST };
+```
+
+**CORS Configuration:**
+- If your Sanity Studio is integrated with your Next.js app (e.g., `/studio` route), CORS is **not needed**
+- If your Sanity Studio is hosted elsewhere (e.g., `studio.yoursite.com` or Sanity Cloud), you **must enable CORS** for this route:
+
+```typescript
+// app/api/gemini/generate-image/route.ts
+import { POST as GeminiPOST } from "sanity-plugin-gemini-ai-images-nextjs/route";
+
+export async function POST(request: Request) {
+  const response = await GeminiPOST(request);
+
+  // Add CORS headers for external Studio
+  response.headers.set('Access-Control-Allow-Origin', 'https://your-studio-domain.com');
+  response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  return response;
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': 'https://your-studio-domain.com',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
 ```
 
 ### 4. Set Environment Variable
@@ -296,7 +327,7 @@ export default defineConfig({
       // Enable standalone tool in sidebar (default: false)
       enableStandaloneTool: true,
 
-      // Maximum images in a series (default: 10)
+      // Maximum images in a series (default: 10, valid range: 2-10)
       maxSeriesQuantity: 10,
 
       // Default consistency level (default: 'moderate')

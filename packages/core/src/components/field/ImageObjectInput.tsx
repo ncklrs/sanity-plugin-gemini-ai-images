@@ -26,7 +26,7 @@ interface ImageObjectInputProps extends ImageInputProps {
  * ```
  */
 export function ImageObjectInput(props: ImageObjectInputProps) {
-  const {apiEndpoint = '/api/gemini/generate-image', enableAIGeneration = true, onChange} = props
+  const {apiEndpoint = '/api/gemini/generate-image', enableAIGeneration = false, onChange} = props
   const [showGenerator, setShowGenerator] = useState(false)
 
   const handleImageGenerated = useCallback(

@@ -84,6 +84,54 @@ geminiAIImages({
 })
 ```
 
+## CORS Configuration (Studio on Different Port)
+
+If your Sanity Studio runs on a different port than your Next.js app (e.g., Studio on `:3333` and Next.js on `:3003`), you'll need to enable CORS:
+
+```typescript
+// app/api/gemini/generate-image/route.ts
+import { POST as BasePOST } from "sanity-plugin-gemini-ai-images-nextjs/route";
+import { NextResponse } from "next/server";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders,
+  });
+}
+
+export async function POST(request: Request) {
+  const response = await BasePOST(request);
+
+  const headers = new Headers(response.headers);
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    headers.set(key, value);
+  });
+
+  return new NextResponse(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+```
+
+Then configure the full URL in your Sanity config:
+
+```typescript
+geminiAIImages({
+  apiEndpoint: 'http://localhost:3003/api/gemini/generate-image',
+})
+```
+
+**Production**: Replace `'*'` in `Access-Control-Allow-Origin` with your specific Studio URL for better security.
+
 ## Requirements
 
 - Next.js 14.0.0 or higher (App Router recommended)

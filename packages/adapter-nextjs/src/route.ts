@@ -116,10 +116,35 @@ export async function POST(request: Request) {
       const images: Array<{imageData: string; mimeType: string; variation: string; index: number}> = []
       const errors: Array<{index: number; variation: string; error: string}> = []
 
-      // Generate images in parallel
-      const promises = variations.slice(0, quantity).map(async (variation: string, index: number) => {
+      // Generate images sequentially when using base image for better consistency
+      const generateImage = async (variation: string, index: number) => {
         try {
-          const fullPrompt = `${prompt} ${consistencyPrompt} Variation: ${variation}`
+          // Build highly specific prompt to enforce consistency
+          let fullPrompt = ''
+
+          if (baseImage) {
+            // When using reference image: emphasize keeping the EXACT same subject
+            fullPrompt = [
+              'CREATE A SINGLE IMAGE (NOT A GRID OR COLLAGE).',
+              'IMPORTANT: Use this reference image as the EXACT subject/person. Do NOT create a different person or subject.',
+              'Keep the SAME person/subject/object from the reference image.',
+              consistencyPrompt,
+              prompt,
+              `Apply this specific variation ONLY: ${variation}`,
+              'Output: ONE single image showing the same subject with the specified variation applied.'
+            ].filter(Boolean).join(' ')
+          } else {
+            // Text-to-image: be very explicit about consistency
+            fullPrompt = [
+              'CREATE A SINGLE IMAGE (NOT A GRID OR COLLAGE).',
+              prompt,
+              consistencyPrompt,
+              `Apply ONLY this variation to the subject: ${variation}`,
+              'The subject itself must remain IDENTICAL. Only the specified variation aspect should change.',
+              'Output: ONE single image.'
+            ].filter(Boolean).join(' ')
+          }
+
           const result = await generateSingleImage(client, fullPrompt, aspectRatio, mode, baseImage)
           return {
             ...result,
@@ -134,9 +159,18 @@ export async function POST(request: Request) {
           })
           return null
         }
-      })
+      }
 
-      const results = await Promise.all(promises)
+      // Generate sequentially to ensure consistency (especially with reference images)
+      const results: any[] = []
+      for (let i = 0; i < Math.min(variations.length, quantity); i++) {
+        const result = await generateImage(variations[i], i)
+        results.push(result)
+        // Small delay between generations to avoid rate limiting
+        if (i < Math.min(variations.length, quantity) - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
+      }
 
       // Filter out failed generations
       for (const result of results) {
@@ -152,6 +186,27 @@ export async function POST(request: Request) {
         )
       }
 
+      // Partial success - some images failed
+      if (errors.length > 0) {
+        return NextResponse.json(
+          {
+            images,
+            metadata: {
+              basePrompt: prompt,
+              stylePrompt: consistencyPrompt,
+              generatedAt: new Date().toISOString(),
+              quantity,
+              successful: images.length,
+              failed: errors.length,
+            },
+            errors,
+            warning: 'Some image generations failed',
+          },
+          {status: 207} // Multi-Status
+        )
+      }
+
+      // Complete success
       return NextResponse.json({
         images,
         metadata: {
@@ -160,9 +215,8 @@ export async function POST(request: Request) {
           generatedAt: new Date().toISOString(),
           quantity,
           successful: images.length,
-          failed: errors.length,
+          failed: 0,
         },
-        errors: errors.length > 0 ? errors : undefined,
       })
     }
 

@@ -1,5 +1,6 @@
-import {Box, Button, Card, Flex, Label, Stack, Tab, TabList, TabPanel, Text} from '@sanity/ui'
+import {Box, Button, Card, Flex, Label, Stack, Tab, TabList, TabPanel, Text, TextInput} from '@sanity/ui'
 import {useCallback, useState} from 'react'
+import {AddIcon} from '@sanity/icons'
 import {variationTemplates, type VariationTemplate} from '../../lib/variation-templates.js'
 import type {VariationType} from '../../types.js'
 
@@ -17,6 +18,7 @@ export function VariationTemplates({
   quantity,
 }: VariationTemplatesProps) {
   const [activeTab, setActiveTab] = useState<string>('templates')
+  const [customVariationInput, setCustomVariationInput] = useState<string>('')
 
   // Get templates matching the current variation type
   const matchingTemplates = Object.values(variationTemplates).filter(
@@ -25,8 +27,11 @@ export function VariationTemplates({
 
   const handleSelectTemplate = useCallback(
     (template: VariationTemplate) => {
+      console.log('Template selected:', template.name, 'Variations:', template.variations.slice(0, quantity))
       // Use the template's variations, limited to quantity
       onVariationsChange(template.variations.slice(0, quantity))
+      // Switch to custom tab to show selected variations
+      setActiveTab('custom')
     },
     [onVariationsChange, quantity],
   )
@@ -44,6 +49,35 @@ export function VariationTemplates({
       }
     },
     [selectedVariations, onVariationsChange, quantity],
+  )
+
+  const handleAddCustomVariation = useCallback(() => {
+    const trimmedInput = customVariationInput.trim()
+
+    if (!trimmedInput) return
+
+    // Check if already exists
+    if (selectedVariations.includes(trimmedInput)) {
+      setCustomVariationInput('')
+      return
+    }
+
+    // Check if we've reached the limit
+    if (selectedVariations.length >= quantity) return
+
+    // Add the new variation
+    onVariationsChange([...selectedVariations, trimmedInput])
+    setCustomVariationInput('')
+  }, [customVariationInput, selectedVariations, onVariationsChange, quantity])
+
+  const handleKeyPress = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        handleAddCustomVariation()
+      }
+    },
+    [handleAddCustomVariation],
   )
 
   return (
@@ -74,19 +108,21 @@ export function VariationTemplates({
           )}
 
           {matchingTemplates.map((template) => (
-            <Card key={template.name} padding={3} radius={2} shadow={1} tone="default">
-              <Stack space={3}>
-                <Flex align="center" justify="space-between">
+            <Card key={template.name} padding={4} radius={2} shadow={1} tone="default">
+              <Stack space={4}>
+                <Flex align="flex-start" justify="space-between" gap={3}>
                   <Box flex={1}>
-                    <Label size={1} weight="semibold">
-                      {template.name}
-                    </Label>
-                    <Text size={1} muted>
-                      {template.description}
-                    </Text>
+                    <Stack space={2}>
+                      <Text size={2} weight="semibold">
+                        {template.name}
+                      </Text>
+                      <Text size={1} muted>
+                        {template.description}
+                      </Text>
+                    </Stack>
                   </Box>
                   <Button
-                    text="Use Template"
+                    text="Select"
                     mode="ghost"
                     tone="primary"
                     onClick={() => handleSelectTemplate(template)}
@@ -94,21 +130,25 @@ export function VariationTemplates({
                   />
                 </Flex>
 
-                <Stack space={2}>
-                  <Text size={0} weight="semibold" muted>
-                    Variations ({template.variations.length}):
-                  </Text>
-                  {template.variations.slice(0, 3).map((variation, index) => (
-                    <Text key={index} size={0} muted style={{fontStyle: 'italic'}}>
-                      • {variation}
+                <Card padding={3} tone="transparent" border>
+                  <Stack space={2}>
+                    <Text size={1} weight="semibold">
+                      Variations ({template.variations.length}):
                     </Text>
-                  ))}
-                  {template.variations.length > 3 && (
-                    <Text size={0} muted>
-                      ... and {template.variations.length - 3} more
-                    </Text>
-                  )}
-                </Stack>
+                    <Stack space={1} paddingLeft={2}>
+                      {template.variations.slice(0, 3).map((variation, index) => (
+                        <Text key={index} size={1} muted>
+                          • {variation}
+                        </Text>
+                      ))}
+                      {template.variations.length > 3 && (
+                        <Text size={1} muted style={{fontStyle: 'italic'}}>
+                          ... and {template.variations.length - 3} more
+                        </Text>
+                      )}
+                    </Stack>
+                  </Stack>
+                </Card>
               </Stack>
             </Card>
           ))}
@@ -123,9 +163,41 @@ export function VariationTemplates({
             </Label>
           </Box>
 
+          {/* Add custom variation input */}
+          <Card padding={3} border radius={2} tone="primary">
+            <Stack space={3}>
+              <Text size={1} weight="semibold">
+                Add Custom Variation
+              </Text>
+              <Flex gap={2} align="flex-end">
+                <Box flex={1}>
+                  <TextInput
+                    placeholder="E.g., front view, dramatic lighting, close-up..."
+                    value={customVariationInput}
+                    onChange={(e) => setCustomVariationInput(e.currentTarget.value)}
+                    onKeyPress={handleKeyPress}
+                    disabled={selectedVariations.length >= quantity}
+                  />
+                </Box>
+                <Button
+                  text="Add"
+                  icon={AddIcon}
+                  tone="primary"
+                  onClick={handleAddCustomVariation}
+                  disabled={!customVariationInput.trim() || selectedVariations.length >= quantity}
+                />
+              </Flex>
+              {selectedVariations.length >= quantity && (
+                <Text size={0} muted>
+                  Maximum variations reached. Remove existing variations to add new ones.
+                </Text>
+              )}
+            </Stack>
+          </Card>
+
           {selectedVariations.length === 0 && (
             <Text size={1} muted align="center">
-              No variations selected. Click variations from templates or add custom ones.
+              No variations selected. Add custom variations above or select from templates.
             </Text>
           )}
 
@@ -146,11 +218,13 @@ export function VariationTemplates({
             ))}
           </Stack>
 
-          <Box paddingTop={2}>
-            <Text size={0} muted>
-              Tip: Select a template from the Templates tab to automatically populate variations
-            </Text>
-          </Box>
+          {selectedVariations.length > 0 && (
+            <Box paddingTop={2}>
+              <Text size={0} muted>
+                Tip: Select a template from the Templates tab to quickly populate variations
+              </Text>
+            </Box>
+          )}
         </Stack>
       </TabPanel>
     </Card>

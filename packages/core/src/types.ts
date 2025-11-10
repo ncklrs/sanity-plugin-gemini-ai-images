@@ -54,6 +54,7 @@ export interface SeriesGenerationConfig extends ImageConfig {
   consistencyLevel: ConsistencyLevel
   baseStylePrompt?: string // Shared style descriptors
   variations?: string[] // Per-image variation prompts
+  baseImage?: File | Blob // Reference image for consistency
 }
 
 export interface SeriesImageResult extends ImageResult {

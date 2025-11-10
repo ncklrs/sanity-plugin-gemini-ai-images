@@ -1,5 +1,5 @@
 import {useState, useCallback} from 'react'
-import {Stack, TextArea, Select, Button, Card, Flex, Text, Box, Tab, TabList, TabPanel} from '@sanity/ui'
+import {Stack, TextArea, Select, Button, Card, Flex, Text, Box, Tab, TabList, TabPanel, useToast} from '@sanity/ui'
 import {useClient} from 'sanity'
 import {useGeminiGeneration} from '../hooks/useGeminiGeneration.js'
 import {useImageUpload} from '../hooks/useImageUpload.js'
@@ -27,6 +27,7 @@ export function ImageGeneratorContent({
   apiEndpoint = '/api/gemini/generate-image',
 }: ImageGeneratorContentProps) {
   const client = useClient({apiVersion: '2024-01-01'})
+  const toast = useToast()
   const [activeTab, setActiveTab] = useState<'single' | 'series'>('single')
   const [currentMode, setCurrentMode] = useState<GenerationMode>(mode)
   const [prompt, setPrompt] = useState('')
@@ -42,11 +43,24 @@ export function ImageGeneratorContent({
   const [consistencyLevel, setConsistencyLevel] = useState<ConsistencyLevel>('moderate')
   const [selectedVariations, setSelectedVariations] = useState<string[]>([])
   const [seriesImages, setSeriesImages] = useState<SeriesImageResult[]>([])
+  const [seriesBaseImage, setSeriesBaseImage] = useState<File | null>(null)
+  const [seriesBaseImagePreview, setSeriesBaseImagePreview] = useState<string | null>(null)
+  const [detailedSubjectPrompt, setDetailedSubjectPrompt] = useState('')
 
   const {generateImage, editImage, loading: generating, error: generationError} = useGeminiGeneration(apiEndpoint)
   const {uploadImage, uploading, error: uploadError} = useImageUpload()
   const {generateSeries, loading: generatingSeries, error: seriesError} = useSeriesGeneration(apiEndpoint)
   const {uploadBatch, uploading: uploadingBatch, uploadProgress} = useBatchUpload()
+
+  const resetForm = useCallback(() => {
+    setPrompt('')
+    setPreviewImage(null)
+    setBaseImageFile(null)
+    setBaseImagePreview(null)
+    setCurrentMode('generate')
+    setAspectRatio('1:1')
+    setUseTemplateBuilder(false)
+  }, [])
 
   const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -58,6 +72,18 @@ export function ImageGeneratorContent({
       }
       reader.readAsDataURL(file)
       setCurrentMode('edit')
+    }
+  }, [])
+
+  const handleSeriesImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setSeriesBaseImage(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setSeriesBaseImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
     }
   }, [])
 
@@ -103,11 +129,19 @@ export function ImageGeneratorContent({
       const base64Parts = previewImage.split(',')
       if (base64Parts.length < 2) {
         console.error('Invalid preview image format')
+        toast.push({
+          status: 'error',
+          title: 'Invalid image format',
+        })
         return
       }
       const base64Data = base64Parts[1]
       if (!base64Data) {
         console.error('No base64 data found in preview image')
+        toast.push({
+          status: 'error',
+          title: 'No image data found',
+        })
         return
       }
 
@@ -119,27 +153,71 @@ export function ImageGeneratorContent({
 
       if (asset) {
         onImageGenerated(asset)
+        toast.push({
+          status: 'success',
+          title: 'Image saved successfully',
+          description: 'Your generated image has been added to the asset library',
+        })
+        // Reset form after successful save
+        resetForm()
       }
     } catch (error) {
       console.error('Failed to save image:', error)
+      toast.push({
+        status: 'error',
+        title: 'Failed to save image',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+      })
     }
   }
 
   const handleGenerateSeries = async () => {
-    if (!prompt.trim() || selectedVariations.length === 0) return
+    if (selectedVariations.length === 0) {
+      toast.push({
+        status: 'warning',
+        title: 'No variations selected',
+        description: 'Please select at least one variation template',
+      })
+      return
+    }
+
+    // Build complete prompt with detailed subject description
+    const completePrompt = detailedSubjectPrompt.trim()
+      ? `${detailedSubjectPrompt.trim()}. ${prompt.trim()}`
+      : prompt.trim()
+
+    if (!completePrompt) {
+      toast.push({
+        status: 'warning',
+        title: 'Missing description',
+        description: 'Please provide either a detailed subject description or base context',
+      })
+      return
+    }
 
     try {
-      const result = await generateSeries(prompt, {
+      const result = await generateSeries(completePrompt, {
         quantity: seriesQuantity,
         variationType,
         consistencyLevel,
         variations: selectedVariations,
         aspectRatio,
+        baseImage: seriesBaseImage || undefined,
       })
 
       setSeriesImages(result.images)
+      toast.push({
+        status: 'success',
+        title: 'Series generated',
+        description: `${result.images.length} images created successfully`,
+      })
     } catch (error) {
       console.error('Series generation failed:', error)
+      toast.push({
+        status: 'error',
+        title: 'Series generation failed',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+      })
     }
   }
 
@@ -164,9 +242,23 @@ export function ImageGeneratorContent({
       // Return first asset to maintain compatibility with single image workflow
       if (assets.length > 0) {
         onImageGenerated(assets[0])
+        toast.push({
+          status: 'success',
+          title: `${assets.length} image${assets.length > 1 ? 's' : ''} saved successfully`,
+          description: 'Your generated images have been added to the asset library',
+        })
+        // Reset series state
+        setSeriesImages([])
+        setPrompt('')
+        setSelectedVariations([])
       }
     } catch (error) {
       console.error('Failed to upload series:', error)
+      toast.push({
+        status: 'error',
+        title: 'Failed to upload series',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+      })
     }
   }
 
@@ -399,19 +491,92 @@ export function ImageGeneratorContent({
             onConsistencyLevelChange={setConsistencyLevel}
           />
 
-          {/* Prompt Input */}
+          {/* Reference Image Upload (Optional) */}
+          <Card padding={3} border radius={2} tone="primary">
+            <Stack space={3}>
+              <Flex align="center" justify="space-between">
+                <Text size={1} weight="semibold">
+                  Reference Image (Recommended)
+                </Text>
+                <Text size={0} muted>Optional</Text>
+              </Flex>
+              {seriesBaseImagePreview ? (
+                <Stack space={2}>
+                  <Box>
+                    <img
+                      src={seriesBaseImagePreview}
+                      alt="Reference image"
+                      style={{width: '100%', maxHeight: '200px', objectFit: 'contain', display: 'block'}}
+                    />
+                  </Box>
+                  <Button
+                    text="Change Reference Image"
+                    mode="ghost"
+                    onClick={() => {
+                      setSeriesBaseImage(null)
+                      setSeriesBaseImagePreview(null)
+                    }}
+                  />
+                </Stack>
+              ) : (
+                <Stack space={2}>
+                  <Box>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleSeriesImageUpload}
+                      style={{display: 'none'}}
+                      id="series-base-image-upload"
+                    />
+                    <label htmlFor="series-base-image-upload">
+                      <Button
+                        text="Upload Reference Image"
+                        tone="primary"
+                        mode="ghost"
+                        onClick={(e: any) => {
+                          e.preventDefault()
+                          document.getElementById('series-base-image-upload')?.click()
+                        }}
+                      />
+                    </label>
+                  </Box>
+                  <Text size={0} muted>
+                    Upload an image of the exact subject you want in all variations. This greatly improves consistency.
+                  </Text>
+                </Stack>
+              )}
+            </Stack>
+          </Card>
+
+          {/* Detailed Subject Description */}
           <Stack space={2}>
             <Text size={1} weight="semibold">
-              Base Prompt
+              Detailed Subject Description
             </Text>
             <TextArea
-              placeholder="Describe the base concept for your image series..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.currentTarget.value)}
-              rows={4}
+              placeholder="E.g., 'Modern ergonomic office chair with black mesh back, gray fabric seat, adjustable armrests, and chrome five-star base with wheels'"
+              value={detailedSubjectPrompt}
+              onChange={(e) => setDetailedSubjectPrompt(e.currentTarget.value)}
+              rows={3}
             />
             <Text size={0} muted>
-              This prompt will be used as the foundation for all images in the series
+              Be VERY specific about your subject. Include materials, colors, unique features, and design details. This helps maintain the same subject across all variations.
+            </Text>
+          </Stack>
+
+          {/* Base Context/Scene Prompt */}
+          <Stack space={2}>
+            <Text size={1} weight="semibold">
+              Base Context/Scene
+            </Text>
+            <TextArea
+              placeholder="E.g., 'Product photography style, white background, professional lighting'"
+              value={prompt}
+              onChange={(e) => setPrompt(e.currentTarget.value)}
+              rows={2}
+            />
+            <Text size={0} muted>
+              Describe the overall scene, style, or context. The variations will modify this while keeping the subject consistent.
             </Text>
           </Stack>
 

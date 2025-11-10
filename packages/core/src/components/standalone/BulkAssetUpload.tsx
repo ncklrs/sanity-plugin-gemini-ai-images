@@ -8,6 +8,7 @@ interface BulkAssetUploadProps {
   metadata?: {
     basePrompt: string
     variationType: string
+    model?: string
   }
   onUploadComplete?: (assetIds: string[]) => void
 }
@@ -16,7 +17,7 @@ export function BulkAssetUpload({images, metadata, onUploadComplete}: BulkAssetU
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
     new Set(images.map((_, i) => i)),
   )
-  const {uploadBatch, uploading, uploadProgress} = useBatchUpload()
+  const {uploadBatch, uploading, uploadProgress, errors} = useBatchUpload()
 
   const handleToggleSelection = useCallback((index: number) => {
     setSelectedIndices((current) => {
@@ -50,7 +51,7 @@ export function BulkAssetUpload({images, metadata, onUploadComplete}: BulkAssetU
         prompt: metadata?.basePrompt
           ? `${metadata.basePrompt} - ${img.variation}`
           : img.variation,
-        model: 'gemini-2.5-flash-image',
+        model: metadata?.model || 'gemini-2.5-flash-image',
         generationParams: {
           variation: img.variation,
           variationType: metadata?.variationType,
@@ -161,6 +162,21 @@ export function BulkAssetUpload({images, metadata, onUploadComplete}: BulkAssetU
                 Uploading {uploadProgress.completed} of {uploadProgress.total} images... (
                 {uploadProgress.percentage}%)
               </Text>
+            </Card>
+          )}
+
+          {errors.length > 0 && (
+            <Card padding={3} tone="critical">
+              <Stack space={2}>
+                <Text size={1} weight="semibold">
+                  Upload errors:
+                </Text>
+                {errors.map((err) => (
+                  <Text key={err.index} size={1}>
+                    Image {err.index + 1}: {err.error}
+                  </Text>
+                ))}
+              </Stack>
             </Card>
           )}
         </Stack>

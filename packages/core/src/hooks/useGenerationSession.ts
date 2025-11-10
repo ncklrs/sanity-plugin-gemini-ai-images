@@ -24,7 +24,10 @@ export function useGenerationSession(): UseGenerationSessionResult {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
         const parsedSessions = JSON.parse(stored) as GenerationSession[]
-        setSessions(parsedSessions)
+        // Validate structure
+        if (Array.isArray(parsedSessions)) {
+          setSessions(parsedSessions)
+        }
       }
     } catch (error) {
       console.error('Failed to load sessions:', error)
@@ -42,7 +45,7 @@ export function useGenerationSession(): UseGenerationSessionResult {
 
   const createNewSession = useCallback(() => {
     const newSession: GenerationSession = {
-      id: `session-${Date.now()}`,
+      id: `session-${crypto.randomUUID()}`,
       timestamp: new Date().toISOString(),
       results: [],
       savedImages: [],
@@ -54,7 +57,7 @@ export function useGenerationSession(): UseGenerationSessionResult {
     setSession((current) => {
       if (!current) {
         const newSession: GenerationSession = {
-          id: `session-${Date.now()}`,
+          id: `session-${crypto.randomUUID()}`,
           timestamp: new Date().toISOString(),
           results: [result],
           savedImages: [],

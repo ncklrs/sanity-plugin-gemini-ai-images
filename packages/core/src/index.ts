@@ -41,16 +41,18 @@ export const geminiAIImages = definePlugin<GeminiPluginConfig | void>((config) =
         },
       },
     },
-    tools: enableStandaloneTool
-      ? [
-          {
-            name: 'ai-image-studio',
-            title: 'AI Image Studio',
-            icon: ImageIcon,
-            component: () => createElement(ImageStudioTool, {apiEndpoint}),
-          },
-        ]
-      : [],
+    tools: (() => {
+      if (!enableStandaloneTool) return []
+
+      return [
+        {
+          name: 'ai-image-studio',
+          title: 'AI Image Studio',
+          icon: ImageIcon,
+          component: () => createElement(ImageStudioTool, {apiEndpoint}),
+        },
+      ]
+    })(),
   }
 })
 
