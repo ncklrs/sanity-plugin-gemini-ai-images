@@ -1,6 +1,6 @@
 {
   "name": "sanity-plugin-gemini-ai-images-nextjs",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Next.js adapter for Sanity Gemini AI Image Generator",
   "keywords": [
     "sanity",
@@ -57,7 +57,7 @@
     "typescript": "^5.9.0"
   },
   "peerDependencies": {
-    "next": "^14.0.0 || ^15.0.0"
+    "next": "^14.0.0 || ^15.0.0 || ^16.0.0"
   },
   "engines": {
     "node": ">=20.0.0"

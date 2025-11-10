@@ -134,7 +134,7 @@ geminiAIImages({
 
 ## Requirements
 
-- Next.js 14.0.0 or higher (App Router recommended)
+- Next.js 14.0.0 or higher (App Router recommended, supports Next.js 14, 15, and 16)
 - Node.js 20.0.0 or higher
 - Sanity Studio v4
 
