@@ -43,4 +43,7 @@ Thumbs.db
 .temp/
 .tmp/
 
+# Package tarballs
+*.tgz
+
 PUBLISH.md

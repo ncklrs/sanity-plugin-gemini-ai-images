@@ -1,14 +1,16 @@
 {
   "name": "sanity-plugin-gemini-ai-images",
-  "version": "1.0.2",
-  "description": "AI-powered image generation for Sanity Studio using Google Gemini",
+  "version": "1.2.0",
+  "description": "AI-powered image generation for Sanity Studio using Google Gemini with series generation support",
   "keywords": [
     "sanity",
     "sanity-plugin",
     "gemini",
     "ai",
     "image-generation",
-    "text-to-image"
+    "text-to-image",
+    "series-generation",
+    "batch-generation"
   ],
   "homepage": "https://github.com/ncklrs/sanity-plugin-gemini-ai-images#readme",
   "bugs": {

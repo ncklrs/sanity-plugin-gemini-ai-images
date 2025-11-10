@@ -8,15 +8,34 @@ AI-powered image generation for Sanity Studio using Google's Gemini 2.5 Flash Im
 
 ## Features
 
+### Single Image Generation
+
 - **Text-to-Image Generation**: Create images from descriptive prompts
 - **Image-to-Image Editing**: Upload photos and generate AI-powered variations
   - Change backgrounds (studio, outdoor, luxury, lifestyle)
   - Add lighting effects (dramatic, golden hour, reflections)
   - Remove clutter and enhance details
   - Create color variants and seasonal themes
-- **Seamless Integration**: Appears directly in Sanity Studio's image picker alongside Upload, Unsplash, etc.
 - **Prompt Templates**: Pre-built templates for both generation and editing
 - **Prompt Builder**: Guided interface for constructing effective prompts
+
+### NEW: Image Series Generation
+
+- **Batch Generation**: Generate 2-10 images in a single request with visual consistency
+- **Congruent Variations**: Maintain consistent style across all images while varying specific elements
+- **Variation Types**:
+  - Different Angles (front, 45°, top-down, side profile)
+  - Different Contexts (lifestyle, minimal, in-use, environmental)
+  - Different Backgrounds (minimalist, outdoor, urban, textured)
+  - Different Lighting (natural, dramatic, golden hour, cool tones)
+- **Consistency Levels**: Choose from strict, moderate, or loose consistency
+- **Variation Templates**: 8 template libraries with 40+ variation patterns
+- **Gallery Preview**: Review all generated images before uploading
+- **Selective Upload**: Choose which images from the series to save
+
+### Core Features
+
+- **Seamless Integration**: Appears directly in Sanity Studio's image picker alongside Upload, Unsplash, etc.
 - **Multiple Aspect Ratios**: Support for 1:1, 16:9, 9:16, 4:3, 3:2, and more
 - **Direct Sanity Upload**: Generated images automatically uploaded to Sanity assets
 - **Secure Backend**: API key stays server-side only
@@ -24,14 +43,20 @@ AI-powered image generation for Sanity Studio using Google's Gemini 2.5 Flash Im
 
 ## Screenshots
 
+![AI Generator Studio in Sanity Studio](img/image-studio-1.png)
+_AI Generator Studio operates as a stand alone tool_
+
+![AI Generator Series Tool in Sanity Studio](img/image-studio-2.png)
+_AI Generator Studio offers Image Series to generate multiple images in a series and operates as a stand alone tool_
+
 ![AI Generator in Sanity Studio](img/studio-1.png)
-*AI Generator appears directly in the image picker alongside other sources*
+_AI Generator appears directly in the image picker alongside other sources_
 
 ![Text-to-Image Generation](img/studio-2.png)
-*Generate images from text prompts with templates and aspect ratio options*
+_Generate images from text prompts with templates and aspect ratio options_
 
 ![Image-to-Image Editing](img/studio-3.png)
-*Upload and edit existing images with AI-powered modifications*
+_Upload and edit existing images with AI-powered modifications_
 
 ## Quick Start (Next.js)
 
@@ -64,6 +89,41 @@ export default defineConfig({
 import { POST } from "sanity-plugin-gemini-ai-images-nextjs/route";
 
 export { POST };
+```
+
+**CORS Configuration:**
+
+- If your Sanity Studio is integrated with your Next.js app (e.g., `/studio` route), CORS is **not needed**
+- If your Sanity Studio is hosted elsewhere (e.g., `studio.yoursite.com` or Sanity Cloud), you **must enable CORS** for this route:
+
+```typescript
+// app/api/gemini/generate-image/route.ts
+import { POST as GeminiPOST } from "sanity-plugin-gemini-ai-images-nextjs/route";
+
+export async function POST(request: Request) {
+  const response = await GeminiPOST(request);
+
+  // Add CORS headers for external Studio
+  response.headers.set(
+    "Access-Control-Allow-Origin",
+    "https://your-studio-domain.com"
+  );
+  response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+
+  return response;
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "https://your-studio-domain.com",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
 ```
 
 ### 4. Set Environment Variable
@@ -181,9 +241,34 @@ The guided prompt builder helps you construct effective prompts by selecting:
 - **Camera Angle**: Eye-level, elevated, low-angle, aerial
 - **Mood**: Neutral, warm, cool, energetic, serene
 
-## Configuration
+## Advanced Features
 
-### Custom API Endpoint
+### Image Series Generation
+
+Generate multiple congruent images in one request:
+
+```typescript
+// In the Studio UI:
+// 1. Click "Image Series" tab
+// 2. Configure quantity (2-10 images)
+// 3. Select variation type (angles, contexts, backgrounds, lighting)
+// 4. Choose consistency level (strict, moderate, loose)
+// 5. Enter base prompt
+// 6. Select variation template
+// 7. Generate series
+// 8. Preview and selectively upload
+```
+
+**Use Cases:**
+
+- Product photography: Same product from different angles
+- Marketing assets: Consistent brand imagery with variations
+- A/B testing: Multiple options maintaining design language
+- E-commerce: Complete product image sets
+
+### Standalone Image Studio Tool
+
+Enable a dedicated generation workspace in Studio:
 
 ```typescript
 // sanity.config.ts
@@ -192,7 +277,76 @@ import { geminiAIImages } from "sanity-plugin-gemini-ai-images";
 export default defineConfig({
   plugins: [
     geminiAIImages({
-      apiEndpoint: "/api/custom/generate-image", // Custom endpoint
+      enableStandaloneTool: true, // Adds "AI Image Studio" to sidebar
+    }),
+  ],
+});
+```
+
+Access via the sidebar "AI Image Studio" tool for:
+
+- Bulk image generation sessions
+- Generation history
+- Workspace for creative exploration
+
+### Image Object Field Integration
+
+Add AI generation directly to image fields:
+
+```typescript
+// schemas/product.ts
+import { ImageObjectInput } from "sanity-plugin-gemini-ai-images";
+
+export default {
+  name: "product",
+  type: "document",
+  fields: [
+    {
+      name: "heroImage",
+      type: "image",
+      components: {
+        input: ImageObjectInput, // Adds "Generate with AI" button
+      },
+    },
+  ],
+};
+```
+
+Or use the inline generator:
+
+```typescript
+import { InlineGenerator } from "sanity-plugin-gemini-ai-images";
+
+// In your custom component:
+<InlineGenerator
+  onImageGenerated={(asset) => {
+    // Handle generated asset
+  }}
+/>
+```
+
+## Configuration
+
+### Full Configuration Options
+
+```typescript
+// sanity.config.ts
+import { geminiAIImages } from "sanity-plugin-gemini-ai-images";
+
+export default defineConfig({
+  plugins: [
+    geminiAIImages({
+      // API endpoint for generation
+      apiEndpoint: "/api/gemini/generate-image",
+
+      // Enable standalone tool in sidebar (default: false)
+      enableStandaloneTool: true,
+
+      // Maximum images in a series (default: 10, valid range: 2-10)
+      maxSeriesQuantity: 10,
+
+      // Default consistency level (default: 'moderate')
+      defaultConsistencyLevel: "moderate", // 'strict' | 'moderate' | 'loose'
     }),
   ],
 });

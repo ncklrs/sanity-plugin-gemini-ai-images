@@ -45,10 +45,61 @@ export interface ImageInputValue {
   }
 }
 
+export type VariationType = 'angle' | 'context' | 'background' | 'lighting' | 'custom'
+export type ConsistencyLevel = 'strict' | 'moderate' | 'loose'
+
+export interface SeriesGenerationConfig extends ImageConfig {
+  quantity: number // 2-10 images
+  variationType: VariationType
+  consistencyLevel: ConsistencyLevel
+  baseStylePrompt?: string // Shared style descriptors
+  variations?: string[] // Per-image variation prompts
+  baseImage?: File | Blob // Reference image for consistency
+}
+
+export interface SeriesImageResult extends ImageResult {
+  variation: string // The variation prompt used
+  index: number // Position in series
+}
+
+export interface SeriesGenerationResult {
+  images: SeriesImageResult[]
+  metadata: {
+    basePrompt: string
+    stylePrompt: string
+    generatedAt: string
+    quantity: number
+    variationType: VariationType
+    consistencyLevel: ConsistencyLevel
+  }
+}
+
+export interface GenerationSession {
+  id: string
+  timestamp: string
+  results: SeriesGenerationResult[]
+  savedImages: string[] // Asset IDs
+}
+
 export interface GeminiPluginConfig {
   /**
    * API endpoint for image generation
    * @default '/api/gemini/generate-image'
    */
   apiEndpoint?: string
+  /**
+   * Enable standalone image generation tool
+   * @default false
+   */
+  enableStandaloneTool?: boolean
+  /**
+   * Maximum number of images in a series
+   * @default 10
+   */
+  maxSeriesQuantity?: number
+  /**
+   * Default consistency level for series generation
+   * @default 'moderate'
+   */
+  defaultConsistencyLevel?: ConsistencyLevel
 }
