@@ -45,11 +45,21 @@ export {PresetTemplates} from './components/PresetTemplates.js'
 export {EditPromptTemplates} from './components/EditPromptTemplates.js'
 export {createGeminiAssetSource} from './components/GeminiAssetSource.js'
 
+// Export series components
+export {SeriesConfigPanel} from './components/series/SeriesConfigPanel.js'
+export {VariationTemplates} from './components/series/VariationTemplates.js'
+export {SeriesPreview} from './components/series/SeriesPreview.js'
+
 // Export hooks for advanced usage
 export {useGeminiGeneration} from './hooks/useGeminiGeneration.js'
 export {useImageUpload} from './hooks/useImageUpload.js'
+export {useSeriesGeneration} from './hooks/useSeriesGeneration.js'
+export {useBatchUpload} from './hooks/useBatchUpload.js'
+export {useGenerationSession} from './hooks/useGenerationSession.js'
 
 // Export utilities
 export {uploadImageToSanity} from './lib/sanity-upload.js'
 export {promptTemplates, templateCategories} from './lib/prompt-templates.js'
 export {editPromptTemplates, editTemplateCategories} from './lib/edit-prompt-templates.js'
+export {variationTemplates, getVariationsByType, getAllVariationTemplates, getVariationTemplate} from './lib/variation-templates.js'
+export {consistencyPrompts, getConsistencyPrompt, buildSeriesPrompt} from './lib/consistency-prompts.js'

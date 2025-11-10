@@ -1,12 +1,17 @@
 import {useState, useCallback} from 'react'
-import {Stack, TextArea, Select, Button, Card, Flex, Text, Box} from '@sanity/ui'
+import {Stack, TextArea, Select, Button, Card, Flex, Text, Box, Tab, TabList, TabPanel} from '@sanity/ui'
 import {useClient} from 'sanity'
 import {useGeminiGeneration} from '../hooks/useGeminiGeneration.js'
 import {useImageUpload} from '../hooks/useImageUpload.js'
+import {useSeriesGeneration} from '../hooks/useSeriesGeneration.js'
+import {useBatchUpload} from '../hooks/useBatchUpload.js'
 import {PromptBuilder} from './PromptBuilder.js'
 import {PresetTemplates} from './PresetTemplates.js'
 import {EditPromptTemplates} from './EditPromptTemplates.js'
-import type {GenerationMode, AspectRatio, SanityImageAsset} from '../types.js'
+import {SeriesConfigPanel} from './series/SeriesConfigPanel.js'
+import {VariationTemplates} from './series/VariationTemplates.js'
+import {SeriesPreview} from './series/SeriesPreview.js'
+import type {GenerationMode, AspectRatio, SanityImageAsset, VariationType, ConsistencyLevel, SeriesImageResult} from '../types.js'
 
 interface ImageGeneratorContentProps {
   mode?: GenerationMode
@@ -22,6 +27,7 @@ export function ImageGeneratorContent({
   apiEndpoint = '/api/gemini/generate-image',
 }: ImageGeneratorContentProps) {
   const client = useClient({apiVersion: '2024-01-01'})
+  const [activeTab, setActiveTab] = useState<'single' | 'series'>('single')
   const [currentMode, setCurrentMode] = useState<GenerationMode>(mode)
   const [prompt, setPrompt] = useState('')
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1')
@@ -30,8 +36,17 @@ export function ImageGeneratorContent({
   const [baseImageFile, setBaseImageFile] = useState<File | null>(null)
   const [baseImagePreview, setBaseImagePreview] = useState<string | null>(null)
 
+  // Series generation state
+  const [seriesQuantity, setSeriesQuantity] = useState(5)
+  const [variationType, setVariationType] = useState<VariationType>('angle')
+  const [consistencyLevel, setConsistencyLevel] = useState<ConsistencyLevel>('moderate')
+  const [selectedVariations, setSelectedVariations] = useState<string[]>([])
+  const [seriesImages, setSeriesImages] = useState<SeriesImageResult[]>([])
+
   const {generateImage, editImage, loading: generating, error: generationError} = useGeminiGeneration(apiEndpoint)
   const {uploadImage, uploading, error: uploadError} = useImageUpload()
+  const {generateSeries, loading: generatingSeries, error: seriesError} = useSeriesGeneration(apiEndpoint)
+  const {uploadBatch, uploading: uploadingBatch, uploadProgress} = useBatchUpload()
 
   const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -110,10 +125,78 @@ export function ImageGeneratorContent({
     }
   }
 
+  const handleGenerateSeries = async () => {
+    if (!prompt.trim() || selectedVariations.length === 0) return
+
+    try {
+      const result = await generateSeries(prompt, {
+        quantity: seriesQuantity,
+        variationType,
+        consistencyLevel,
+        variations: selectedVariations,
+        aspectRatio,
+      })
+
+      setSeriesImages(result.images)
+    } catch (error) {
+      console.error('Series generation failed:', error)
+    }
+  }
+
+  const handleUploadSeries = async (selectedImages: SeriesImageResult[]) => {
+    try {
+      const assets = await uploadBatch(
+        selectedImages.map(img => ({
+          imageData: img.imageData,
+          mimeType: img.mimeType,
+        })),
+        selectedImages.map((img, index) => ({
+          prompt: `${prompt} - ${img.variation}`,
+          model: 'gemini-2.5-flash-image',
+          generationParams: {
+            aspectRatio,
+            seriesIndex: index,
+            variation: img.variation,
+          },
+        })),
+      )
+
+      // Return first asset to maintain compatibility with single image workflow
+      if (assets.length > 0) {
+        onImageGenerated(assets[0])
+      }
+    } catch (error) {
+      console.error('Failed to upload series:', error)
+    }
+  }
+
   return (
     <Stack space={4}>
-      {/* Mode Toggle */}
-      <Flex gap={2}>
+      {/* Single vs Series Tabs */}
+      <Card>
+        <TabList space={2}>
+          <Tab
+            aria-controls="single-panel"
+            id="single-tab"
+            label="Single Image"
+            onClick={() => setActiveTab('single')}
+            selected={activeTab === 'single'}
+          />
+          <Tab
+            aria-controls="series-panel"
+            id="series-tab"
+            label="Image Series"
+            onClick={() => setActiveTab('series')}
+            selected={activeTab === 'series'}
+          />
+        </TabList>
+      </Card>
+
+      {/* Single Image Panel */}
+      <TabPanel aria-labelledby="single-tab" id="single-panel" hidden={activeTab !== 'single'}>
+        <Stack space={4}>
+          {/* Mode Toggle */}
+          <Flex gap={2}>
         <Box flex={1}>
           <Button
             text="Generate from Text"
@@ -276,30 +359,133 @@ export function ImageGeneratorContent({
         </Card>
       )}
 
-      {/* Actions */}
-      <Flex gap={2}>
-        <Button
-          text={previewImage ? 'Regenerate' : currentMode === 'edit' ? 'Edit Image' : 'Generate'}
-          tone="primary"
-          loading={generating}
-          onClick={handleGenerate}
-          disabled={
-            !prompt.trim() ||
-            generating ||
-            uploading ||
-            (currentMode === 'edit' && !baseImageFile && !existingImage)
-          }
-        />
-        {previewImage && (
-          <Button
-            text="Use This Image"
-            tone="positive"
-            loading={uploading}
-            onClick={handleSave}
-            disabled={generating || uploading}
+          {/* Actions */}
+          <Flex gap={2}>
+            <Button
+              text={previewImage ? 'Regenerate' : currentMode === 'edit' ? 'Edit Image' : 'Generate'}
+              tone="primary"
+              loading={generating}
+              onClick={handleGenerate}
+              disabled={
+                !prompt.trim() ||
+                generating ||
+                uploading ||
+                (currentMode === 'edit' && !baseImageFile && !existingImage)
+              }
+            />
+            {previewImage && (
+              <Button
+                text="Use This Image"
+                tone="positive"
+                loading={uploading}
+                onClick={handleSave}
+                disabled={generating || uploading}
+              />
+            )}
+          </Flex>
+        </Stack>
+      </TabPanel>
+
+      {/* Series Generation Panel */}
+      <TabPanel aria-labelledby="series-tab" id="series-panel" hidden={activeTab !== 'series'}>
+        <Stack space={4}>
+          {/* Series Configuration */}
+          <SeriesConfigPanel
+            quantity={seriesQuantity}
+            variationType={variationType}
+            consistencyLevel={consistencyLevel}
+            onQuantityChange={setSeriesQuantity}
+            onVariationTypeChange={setVariationType}
+            onConsistencyLevelChange={setConsistencyLevel}
           />
-        )}
-      </Flex>
+
+          {/* Prompt Input */}
+          <Stack space={2}>
+            <Text size={1} weight="semibold">
+              Base Prompt
+            </Text>
+            <TextArea
+              placeholder="Describe the base concept for your image series..."
+              value={prompt}
+              onChange={(e) => setPrompt(e.currentTarget.value)}
+              rows={4}
+            />
+            <Text size={0} muted>
+              This prompt will be used as the foundation for all images in the series
+            </Text>
+          </Stack>
+
+          {/* Aspect Ratio */}
+          <Stack space={2}>
+            <Text size={1} weight="semibold">
+              Aspect Ratio
+            </Text>
+            <Select value={aspectRatio} onChange={(e) => setAspectRatio(e.currentTarget.value as AspectRatio)}>
+              <option value="1:1">Square (1:1)</option>
+              <option value="16:9">Landscape (16:9)</option>
+              <option value="9:16">Portrait (9:16)</option>
+              <option value="4:3">Classic (4:3)</option>
+              <option value="3:2">Standard (3:2)</option>
+              <option value="2:3">Portrait Standard (2:3)</option>
+              <option value="3:4">Portrait Classic (3:4)</option>
+              <option value="4:5">Portrait Social (4:5)</option>
+              <option value="5:4">Landscape Social (5:4)</option>
+              <option value="21:9">Ultrawide (21:9)</option>
+            </Select>
+          </Stack>
+
+          {/* Variation Templates */}
+          <VariationTemplates
+            variationType={variationType}
+            selectedVariations={selectedVariations}
+            onVariationsChange={setSelectedVariations}
+            quantity={seriesQuantity}
+          />
+
+          {/* Errors */}
+          {seriesError && (
+            <Card tone="critical" padding={3} border radius={2}>
+              <Text size={1}>{seriesError}</Text>
+            </Card>
+          )}
+
+          {/* Generate Button */}
+          {seriesImages.length === 0 && (
+            <Button
+              text="Generate Series"
+              tone="primary"
+              loading={generatingSeries}
+              onClick={handleGenerateSeries}
+              disabled={!prompt.trim() || selectedVariations.length === 0 || generatingSeries}
+            />
+          )}
+
+          {/* Series Preview and Upload */}
+          {seriesImages.length > 0 && (
+            <>
+              <SeriesPreview
+                images={seriesImages}
+                onUploadSelected={handleUploadSeries}
+                uploading={uploadingBatch}
+              />
+              <Button
+                text="Generate New Series"
+                mode="ghost"
+                onClick={() => setSeriesImages([])}
+                disabled={generatingSeries || uploadingBatch}
+              />
+            </>
+          )}
+
+          {uploadingBatch && (
+            <Card padding={3} tone="primary">
+              <Text size={1}>
+                Uploading {uploadProgress.completed} of {uploadProgress.total} images... ({uploadProgress.percentage}%)
+              </Text>
+            </Card>
+          )}
+        </Stack>
+      </TabPanel>
     </Stack>
   )
 }

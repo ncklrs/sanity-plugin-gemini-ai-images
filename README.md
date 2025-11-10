@@ -8,15 +8,31 @@ AI-powered image generation for Sanity Studio using Google's Gemini 2.5 Flash Im
 
 ## Features
 
+### Single Image Generation
 - **Text-to-Image Generation**: Create images from descriptive prompts
 - **Image-to-Image Editing**: Upload photos and generate AI-powered variations
   - Change backgrounds (studio, outdoor, luxury, lifestyle)
   - Add lighting effects (dramatic, golden hour, reflections)
   - Remove clutter and enhance details
   - Create color variants and seasonal themes
-- **Seamless Integration**: Appears directly in Sanity Studio's image picker alongside Upload, Unsplash, etc.
 - **Prompt Templates**: Pre-built templates for both generation and editing
 - **Prompt Builder**: Guided interface for constructing effective prompts
+
+### NEW: Image Series Generation
+- **Batch Generation**: Generate 2-10 images in a single request with visual consistency
+- **Congruent Variations**: Maintain consistent style across all images while varying specific elements
+- **Variation Types**:
+  - Different Angles (front, 45°, top-down, side profile)
+  - Different Contexts (lifestyle, minimal, in-use, environmental)
+  - Different Backgrounds (minimalist, outdoor, urban, textured)
+  - Different Lighting (natural, dramatic, golden hour, cool tones)
+- **Consistency Levels**: Choose from strict, moderate, or loose consistency
+- **Variation Templates**: 8+ pre-built variation pattern libraries
+- **Gallery Preview**: Review all generated images before uploading
+- **Selective Upload**: Choose which images from the series to save
+
+### Core Features
+- **Seamless Integration**: Appears directly in Sanity Studio's image picker alongside Upload, Unsplash, etc.
 - **Multiple Aspect Ratios**: Support for 1:1, 16:9, 9:16, 4:3, 3:2, and more
 - **Direct Sanity Upload**: Generated images automatically uploaded to Sanity assets
 - **Secure Backend**: API key stays server-side only
