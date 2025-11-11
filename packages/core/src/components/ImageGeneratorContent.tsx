@@ -18,6 +18,7 @@ interface ImageGeneratorContentProps {
   existingImage?: any
   onImageGenerated: (asset: SanityImageAsset) => void
   apiEndpoint?: string
+  apiKey?: string
 }
 
 export function ImageGeneratorContent({
@@ -25,6 +26,7 @@ export function ImageGeneratorContent({
   existingImage,
   onImageGenerated,
   apiEndpoint = '/api/gemini/generate-image',
+  apiKey,
 }: ImageGeneratorContentProps) {
   const client = useClient({apiVersion: '2024-01-01'})
   const toast = useToast()
@@ -47,9 +49,9 @@ export function ImageGeneratorContent({
   const [seriesBaseImagePreview, setSeriesBaseImagePreview] = useState<string | null>(null)
   const [detailedSubjectPrompt, setDetailedSubjectPrompt] = useState('')
 
-  const {generateImage, editImage, loading: generating, error: generationError} = useGeminiGeneration(apiEndpoint)
+  const {generateImage, editImage, loading: generating, error: generationError} = useGeminiGeneration(apiEndpoint, apiKey)
   const {uploadImage, uploading, error: uploadError} = useImageUpload()
-  const {generateSeries, loading: generatingSeries, error: seriesError} = useSeriesGeneration(apiEndpoint)
+  const {generateSeries, loading: generatingSeries, error: seriesError} = useSeriesGeneration(apiEndpoint, apiKey)
   const {uploadBatch, uploading: uploadingBatch, uploadProgress} = useBatchUpload()
 
   const resetForm = useCallback(() => {

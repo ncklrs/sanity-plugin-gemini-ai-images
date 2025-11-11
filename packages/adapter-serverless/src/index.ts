@@ -1,9 +1,26 @@
 import {GoogleGenAI} from '@google/genai'
 
 const geminiApiKey = process.env.GEMINI_API_KEY
+const expectedApiKey = process.env.GEMINI_PLUGIN_API_KEY
 
 if (!geminiApiKey) {
   console.warn('GEMINI_API_KEY not configured - AI image generation will not work')
+}
+
+/**
+ * Verify API key if one is configured
+ * If GEMINI_PLUGIN_API_KEY is set, requests must include matching X-API-Key header
+ * If not set, no API key verification is performed (backward compatible)
+ */
+function verifyApiKey(request: Request): boolean {
+  // If no API key is configured, allow all requests (backward compatible)
+  if (!expectedApiKey) {
+    return true
+  }
+
+  // If API key is configured, verify it matches
+  const providedKey = request.headers.get('x-api-key')
+  return providedKey === expectedApiKey
 }
 
 interface RequestBody {
@@ -148,7 +165,7 @@ export async function handler(
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       },
     })
   }
@@ -158,6 +175,17 @@ export async function handler(
       JSON.stringify({error: 'Method not allowed'}),
       {
         status: 405,
+        headers: {'Content-Type': 'application/json'},
+      }
+    )
+  }
+
+  // Verify API key if configured
+  if (!verifyApiKey(request)) {
+    return new Response(
+      JSON.stringify({error: 'Invalid or missing API key'}),
+      {
+        status: 401,
         headers: {'Content-Type': 'application/json'},
       }
     )

@@ -5,9 +5,13 @@ import type {SanityImageAsset} from '../../types.js'
 
 interface ImageStudioToolProps {
   apiEndpoint?: string
+  apiKey?: string
 }
 
-export function ImageStudioTool({apiEndpoint = '/api/gemini/generate-image'}: ImageStudioToolProps) {
+export function ImageStudioTool({
+  apiEndpoint = '/api/gemini/generate-image',
+  apiKey
+}: ImageStudioToolProps) {
   const {saveSession} = useGenerationSession()
 
   const handleImageGenerated = (_asset: SanityImageAsset) => {
@@ -26,6 +30,7 @@ export function ImageStudioTool({apiEndpoint = '/api/gemini/generate-image'}: Im
           <Box padding={4}>
             <ImageGeneratorContent
               apiEndpoint={apiEndpoint}
+              apiKey={apiKey}
               onImageGenerated={handleImageGenerated}
             />
           </Box>

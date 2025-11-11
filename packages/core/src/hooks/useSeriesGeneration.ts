@@ -12,7 +12,10 @@ interface UseSeriesGenerationResult {
   error: string | null
 }
 
-export function useSeriesGeneration(apiEndpoint: string): UseSeriesGenerationResult {
+export function useSeriesGeneration(
+  apiEndpoint: string,
+  apiKey?: string
+): UseSeriesGenerationResult {
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -67,11 +70,17 @@ export function useSeriesGeneration(apiEndpoint: string): UseSeriesGenerationRes
         const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minutes
 
         try {
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          }
+
+          if (apiKey) {
+            headers['X-API-Key'] = apiKey
+          }
+
           const response = await fetch(apiEndpoint, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
             signal: controller.signal,
             body: JSON.stringify({
               prompt: basePrompt,
@@ -133,7 +142,7 @@ export function useSeriesGeneration(apiEndpoint: string): UseSeriesGenerationRes
         setLoading(false)
       }
     },
-    [apiEndpoint],
+    [apiEndpoint, apiKey],
   )
 
   return {
