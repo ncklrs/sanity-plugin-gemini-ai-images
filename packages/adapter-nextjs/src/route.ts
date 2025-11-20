@@ -2,9 +2,26 @@ import {NextResponse} from 'next/server'
 import {GoogleGenAI} from '@google/genai'
 
 const geminiApiKey = process.env.GEMINI_API_KEY
+const expectedApiKey = process.env.GEMINI_PLUGIN_API_KEY
 
 if (!geminiApiKey) {
   console.warn('GEMINI_API_KEY not configured - AI image generation will not work')
+}
+
+/**
+ * Verify API key if one is configured
+ * If GEMINI_PLUGIN_API_KEY is set, requests must include matching X-API-Key header
+ * If not set, no API key verification is performed (backward compatible)
+ */
+function verifyApiKey(request: Request): boolean {
+  // If no API key is configured, allow all requests (backward compatible)
+  if (!expectedApiKey) {
+    return true
+  }
+
+  // If API key is configured, verify it matches
+  const providedKey = request.headers.get('x-api-key')
+  return providedKey === expectedApiKey
 }
 
 /**
@@ -87,6 +104,14 @@ async function generateSingleImage(
 }
 
 export async function POST(request: Request) {
+  // Verify API key if configured
+  if (!verifyApiKey(request)) {
+    return NextResponse.json(
+      {error: 'Invalid or missing API key'},
+      {status: 401}
+    )
+  }
+
   if (!geminiApiKey) {
     return NextResponse.json({error: 'Gemini API not configured'}, {status: 500})
   }

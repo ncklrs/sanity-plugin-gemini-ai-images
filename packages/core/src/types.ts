@@ -88,6 +88,12 @@ export interface GeminiPluginConfig {
    */
   apiEndpoint?: string
   /**
+   * Optional API key for authenticating requests
+   * If provided, will be sent as X-API-Key header with each request
+   * @default undefined
+   */
+  apiKey?: string
+  /**
    * Enable standalone image generation tool
    * @default false
    */

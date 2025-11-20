@@ -5,7 +5,10 @@ import type {ImageConfig, ImageResult} from '../types.js'
  * Hook for generating and editing images using Gemini API
  * Makes server-side requests to the configured API endpoint
  */
-export function useGeminiGeneration(apiEndpoint: string = '/api/gemini/generate-image') {
+export function useGeminiGeneration(
+  apiEndpoint: string = '/api/gemini/generate-image',
+  apiKey?: string
+) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -15,11 +18,17 @@ export function useGeminiGeneration(apiEndpoint: string = '/api/gemini/generate-
       setError(null)
 
       try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        }
+
+        if (apiKey) {
+          headers['X-API-Key'] = apiKey
+        }
+
         const response = await fetch(apiEndpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({
             prompt,
             aspectRatio: config?.aspectRatio,
@@ -43,7 +52,7 @@ export function useGeminiGeneration(apiEndpoint: string = '/api/gemini/generate-
         setLoading(false)
       }
     },
-    [apiEndpoint]
+    [apiEndpoint, apiKey]
   )
 
   const editImage = useCallback(
@@ -59,11 +68,17 @@ export function useGeminiGeneration(apiEndpoint: string = '/api/gemini/generate-
         // Convert image to base64
         const base64Image = await fileToBase64(baseImage)
 
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        }
+
+        if (apiKey) {
+          headers['X-API-Key'] = apiKey
+        }
+
         const response = await fetch(apiEndpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({
             prompt,
             aspectRatio: config?.aspectRatio,
@@ -88,7 +103,7 @@ export function useGeminiGeneration(apiEndpoint: string = '/api/gemini/generate-
         setLoading(false)
       }
     },
-    [apiEndpoint]
+    [apiEndpoint, apiKey]
   )
 
   return {

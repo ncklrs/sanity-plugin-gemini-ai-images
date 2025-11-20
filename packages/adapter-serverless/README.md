@@ -57,12 +57,14 @@ import {handler} from 'sanity-plugin-gemini-ai-images-serverless'
 export {handler}
 ```
 
-### 3. Set Environment Variable
+### 3. Set Environment Variables
 
 **Vercel:**
 ```bash
 # .env or Vercel Dashboard
 GEMINI_API_KEY=your_api_key_here
+SANITY_PROJECT_ID=your_project_id
+SANITY_DATASET=production
 ```
 
 **Netlify:**
@@ -70,12 +72,21 @@ GEMINI_API_KEY=your_api_key_here
 # netlify.toml or Netlify Dashboard
 [build.environment]
   GEMINI_API_KEY = "your_api_key_here"
+  SANITY_PROJECT_ID = "your_project_id"
+  SANITY_DATASET = "production"
 ```
 
 **AWS Lambda:**
-Set via AWS Console → Lambda → Configuration → Environment variables
+Set via AWS Console → Lambda → Configuration → Environment variables:
+- `GEMINI_API_KEY`: your_api_key_here
+- `SANITY_PROJECT_ID`: your_project_id
+- `SANITY_DATASET`: production
 
-Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+Get your Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+
+**Important**:
+- The Sanity project ID and dataset are required for authentication verification
+- These should match your Sanity Studio configuration
 
 ## Platform-Specific Notes
 
@@ -134,6 +145,16 @@ geminiAIImages({
 - Sanity Studio v4
 - Serverless platform that supports Node.js runtime
 
+## Authentication
+
+This adapter automatically verifies that requests come from authenticated Sanity Studio users. The authentication flow works as follows:
+
+1. The core plugin (in Sanity Studio) retrieves the user's token from the Sanity client
+2. The token is sent in the `Authorization: Bearer <token>` header with each request
+3. The adapter verifies the token against the Sanity API before processing the image generation request
+
+This ensures that only authenticated Sanity Studio users can generate images through your API endpoint.
+
 ## Troubleshooting
 
 ### Function Timeout
@@ -151,6 +172,15 @@ The handler includes CORS headers by default. If you still see errors, check you
 ### Cold Starts
 
 First request may be slow due to cold starts. This is normal for serverless functions.
+
+### Unauthorized Error (401)
+
+If you receive "Unauthorized" errors:
+- Ensure you're logged into Sanity Studio
+- Verify `SANITY_PROJECT_ID` and `SANITY_DATASET` environment variables are set correctly
+- Check that the environment variables match your Sanity Studio configuration
+- Make sure your serverless platform has the environment variables configured
+- Note: Use `SANITY_PROJECT_ID` (not `NEXT_PUBLIC_SANITY_PROJECT_ID`) in serverless environments
 
 ## License
 

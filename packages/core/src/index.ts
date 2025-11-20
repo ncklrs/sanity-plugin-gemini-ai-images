@@ -29,6 +29,7 @@ import type {GeminiPluginConfig} from './types.js'
  */
 export const geminiAIImages = definePlugin<GeminiPluginConfig | void>((config) => {
   const apiEndpoint = config?.apiEndpoint || '/api/gemini/generate-image'
+  const apiKey = config?.apiKey
   const enableStandaloneTool = config?.enableStandaloneTool ?? false
 
   return {
@@ -37,7 +38,7 @@ export const geminiAIImages = definePlugin<GeminiPluginConfig | void>((config) =
       image: {
         assetSources: (previousAssetSources) => {
           // Add Gemini AI Generator to the list of asset sources
-          return [...previousAssetSources, createGeminiAssetSource(apiEndpoint)]
+          return [...previousAssetSources, createGeminiAssetSource(apiEndpoint, apiKey)]
         },
       },
     },
@@ -49,7 +50,7 @@ export const geminiAIImages = definePlugin<GeminiPluginConfig | void>((config) =
           name: 'ai-image-studio',
           title: 'AI Image Studio',
           icon: ImageIcon,
-          component: () => createElement(ImageStudioTool, {apiEndpoint}),
+          component: () => createElement(ImageStudioTool, {apiEndpoint, apiKey}),
         },
       ]
     })(),
