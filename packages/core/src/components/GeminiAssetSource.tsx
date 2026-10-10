@@ -1,9 +1,9 @@
 import {Card} from '@sanity/ui'
 import {ImageGeneratorContent} from './ImageGeneratorContent.js'
 import type {AssetSource, AssetFromSource} from 'sanity'
-import type {SanityImageAsset} from '../types.js'
+import type {SanityImageAsset, GeminiPluginConfig} from '../types.js'
 
-interface GeminiAssetSourceComponentProps {
+interface GeminiAssetSourceComponentProps extends GeminiPluginConfig {
   onSelect: (assets: AssetFromSource[]) => void
   apiEndpoint?: string
   apiKey?: string
@@ -19,6 +19,7 @@ export function GeminiAssetSourceComponent({
   onSelect,
   apiEndpoint,
   apiKey,
+  ...options
 }: GeminiAssetSourceComponentProps) {
   const handleImageGenerated = (asset: SanityImageAsset) => {
     // Convert to AssetFromSource format that Sanity expects
@@ -38,6 +39,7 @@ export function GeminiAssetSourceComponent({
         onImageGenerated={handleImageGenerated}
         apiEndpoint={apiEndpoint}
         apiKey={apiKey}
+        {...options}
       />
     </Card>
   )
@@ -46,11 +48,11 @@ export function GeminiAssetSourceComponent({
 /**
  * Create asset source with configurable API endpoint and optional API key
  */
-export function createGeminiAssetSource(apiEndpoint?: string, apiKey?: string): AssetSource {
+export function createGeminiAssetSource(apiEndpoint?: string, apiKey?: string, options?: GeminiPluginConfig): AssetSource {
   return {
     name: 'gemini-ai',
     title: 'AI Generator',
-    component: (props) => <GeminiAssetSourceComponent {...props} apiEndpoint={apiEndpoint} apiKey={apiKey} />,
+    component: (props) => <GeminiAssetSourceComponent {...props} apiEndpoint={apiEndpoint} apiKey={apiKey} {...options} />,
     icon: () => (
       <svg
         width="1em"

@@ -1,11 +1,13 @@
-import {Box, Button, Card, Dialog, Flex, Stack} from '@sanity/ui'
-import {ImageIcon} from '@sanity/icons'
-import {useCallback, useState} from 'react'
-import {ImageInput, type ImageInputProps} from 'sanity'
+import {Stack} from '../../lib/ui-compat.js'
+import {Box, Button, Card, Dialog, Flex} from '@sanity/ui'
+import {ImageIcon} from '@sanity/icons/Image'
+import {useCallback, useState, useId} from 'react'
+import {set, setIfMissing, type ObjectInputProps, type ImageValue} from 'sanity'
 import {ImageGeneratorContent} from '../ImageGeneratorContent.js'
-import type {SanityImageAsset} from '../../types.js'
+import type {SanityImageAsset, GeminiPluginConfig} from '../../types.js'
 
-interface ImageObjectInputProps extends ImageInputProps {
+interface ImageObjectInputProps
+  extends ObjectInputProps<ImageValue>, GeminiPluginConfig {
   apiEndpoint?: string
   enableAIGeneration?: boolean
 }
@@ -26,11 +28,17 @@ interface ImageObjectInputProps extends ImageInputProps {
  * ```
  */
 export function ImageObjectInput(props: ImageObjectInputProps) {
-  const {apiEndpoint = '/api/gemini/generate-image', enableAIGeneration = false, onChange} = props
+  const {
+    apiEndpoint = '/api/gemini/generate-image',
+    enableAIGeneration = false,
+    onChange,
+  } = props
+  const dialogId = useId()
   const [showGenerator, setShowGenerator] = useState(false)
 
   const handleImageGenerated = useCallback(
     (asset: SanityImageAsset) => {
+      if (props.readOnly) return
       // Create image value compatible with Sanity image fields
       const imageValue = {
         _type: 'image',
@@ -41,18 +49,28 @@ export function ImageObjectInput(props: ImageObjectInputProps) {
       }
 
       // Update the field value
-      onChange(imageValue as any)
+      const patches = [
+        setIfMissing({_type: props.schemaType?.name ?? 'image'}),
+        set(imageValue.asset, ['asset']),
+      ]
+      for (const name of ['alt', 'caption'] as const)
+        if (
+          asset.editorial?.[name] &&
+          props.schemaType.fields.some((field) => field.name === name)
+        )
+          patches.push(set(asset.editorial[name], [name]))
+      onChange(patches)
 
       // Close the dialog
       setShowGenerator(false)
     },
-    [onChange],
+    [onChange, props.readOnly, props.schemaType],
   )
 
   return (
-    <Stack space={3}>
+    <Stack gap={3}>
       {/* Standard Sanity Image Input */}
-      <ImageInput {...props} />
+      {props.renderDefault(props)}
 
       {/* AI Generation Button */}
       {enableAIGeneration && (
@@ -71,6 +89,7 @@ export function ImageObjectInput(props: ImageObjectInputProps) {
             </Box>
             <Button
               text="Generate with AI"
+              disabled={props.readOnly}
               tone="primary"
               onClick={() => setShowGenerator(true)}
             />
@@ -82,13 +101,21 @@ export function ImageObjectInput(props: ImageObjectInputProps) {
       {showGenerator && (
         <Dialog
           header="AI Image Generator"
-          id="ai-image-generator-dialog"
+          id={dialogId}
           onClose={() => setShowGenerator(false)}
           width={2}
         >
           <Box padding={4}>
             <ImageGeneratorContent
+              mode={props.value?.asset ? 'edit' : 'generate'}
+              existingImage={props.value}
+              {...props}
               apiEndpoint={apiEndpoint}
+              apiKey={props.apiKey}
+              defaultModel={props.defaultModel}
+              availableModels={props.availableModels}
+              maxSeriesQuantity={props.maxSeriesQuantity}
+              defaultConsistencyLevel={props.defaultConsistencyLevel}
               onImageGenerated={handleImageGenerated}
             />
           </Box>

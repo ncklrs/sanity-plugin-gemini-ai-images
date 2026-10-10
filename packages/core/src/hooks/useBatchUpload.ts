@@ -10,12 +10,22 @@ interface UploadProgress {
 }
 
 interface UseBatchUploadResult {
+  uploadBatchWithResults: (
+    images: Array<{imageData: string; mimeType: string}>,
+    metadata?: GenerationMetadata[],
+  ) => Promise<BatchUploadResult>
   uploadBatch: (
     images: Array<{imageData: string; mimeType: string}>,
     metadata?: GenerationMetadata[],
   ) => Promise<SanityImageAsset[]>
   uploading: boolean
   uploadProgress: UploadProgress
+  errors: Array<{index: number; error: string}>
+}
+
+export interface BatchUploadResult {
+  assets: SanityImageAsset[]
+  successfulIndices: number[]
   errors: Array<{index: number; error: string}>
 }
 
@@ -27,13 +37,15 @@ export function useBatchUpload(): UseBatchUploadResult {
     total: 0,
     percentage: 0,
   })
-  const [errors, setErrors] = useState<Array<{index: number; error: string}>>([])
+  const [errors, setErrors] = useState<Array<{index: number; error: string}>>(
+    [],
+  )
 
-  const uploadBatch = useCallback(
+  const uploadBatchWithResults = useCallback(
     async (
       images: Array<{imageData: string; mimeType: string}>,
       metadata?: GenerationMetadata[],
-    ): Promise<SanityImageAsset[]> => {
+    ): Promise<BatchUploadResult> => {
       setUploading(true)
       setUploadProgress({
         completed: 0,
@@ -43,6 +55,7 @@ export function useBatchUpload(): UseBatchUploadResult {
       setErrors([])
 
       const uploadedAssets: SanityImageAsset[] = []
+      const successfulIndices: number[] = []
       const uploadErrors: Array<{index: number; error: string}> = []
 
       try {
@@ -58,22 +71,23 @@ export function useBatchUpload(): UseBatchUploadResult {
               image.imageData,
               filename,
               metadata?.[i],
+              image.mimeType,
             )
 
             uploadedAssets.push(asset)
-
-            // Update progress
-            const completed = i + 1
-            setUploadProgress({
-              completed,
-              total: images.length,
-              percentage: Math.round((completed / images.length) * 100),
-            })
+            successfulIndices.push(i)
           } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Upload failed'
+            const errorMessage =
+              err instanceof Error ? err.message : 'Upload failed'
             uploadErrors.push({
               index: i,
               error: errorMessage,
+            })
+          } finally {
+            setUploadProgress({
+              completed: i + 1,
+              total: images.length,
+              percentage: Math.round(((i + 1) / images.length) * 100),
             })
           }
         }
@@ -82,7 +96,7 @@ export function useBatchUpload(): UseBatchUploadResult {
           setErrors(uploadErrors)
         }
 
-        return uploadedAssets
+        return {assets: uploadedAssets, successfulIndices, errors: uploadErrors}
       } finally {
         setUploading(false)
       }
@@ -90,8 +104,17 @@ export function useBatchUpload(): UseBatchUploadResult {
     [client],
   )
 
+  const uploadBatch = useCallback(
+    async (
+      images: Array<{imageData: string; mimeType: string}>,
+      metadata?: GenerationMetadata[],
+    ) => (await uploadBatchWithResults(images, metadata)).assets,
+    [uploadBatchWithResults],
+  )
+
   return {
     uploadBatch,
+    uploadBatchWithResults,
     uploading,
     uploadProgress,
     errors,

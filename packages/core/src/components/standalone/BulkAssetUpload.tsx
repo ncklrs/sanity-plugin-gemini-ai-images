@@ -1,4 +1,5 @@
-import {Box, Button, Card, Checkbox, Flex, Grid, Label, Stack, Text} from '@sanity/ui'
+import {Grid, Stack} from '../../lib/ui-compat.js'
+import {Box, Button, Card, Checkbox, Flex, Label, Text} from '@sanity/ui'
 import {useCallback, useEffect, useState} from 'react'
 import type {SeriesImageResult} from '../../types.js'
 import {useBatchUpload} from '../../hooks/useBatchUpload.js'
@@ -47,16 +48,17 @@ export function BulkAssetUpload({images, metadata, onUploadComplete}: BulkAssetU
   const handleUpload = useCallback(async () => {
     const selected = images.filter((_, i) => selectedIndices.has(i))
 
+    const unsaved = selected.filter(image=>!image.assetId)
     const assets = await uploadBatch(
-      selected.map((img) => ({
+      unsaved.map((img) => ({
         imageData: img.imageData,
         mimeType: img.mimeType,
       })),
-      selected.map((img) => ({
+      unsaved.map((img) => ({
         prompt: metadata?.basePrompt
           ? `${metadata.basePrompt} - ${img.variation}`
           : img.variation,
-        model: metadata?.model || 'gemini-2.5-flash-image',
+        model: img.model || metadata?.model,
         generationParams: {
           variation: img.variation,
           variationType: metadata?.variationType,
@@ -65,16 +67,16 @@ export function BulkAssetUpload({images, metadata, onUploadComplete}: BulkAssetU
     )
 
     if (onUploadComplete) {
-      onUploadComplete(assets.map((a) => a._id))
+      onUploadComplete([...selected.flatMap(image=>image.assetId?[image.assetId]:[]),...assets.map((a) => a._id)])
     }
   }, [images, selectedIndices, uploadBatch, metadata, onUploadComplete])
 
   const selectedCount = selectedIndices.size
 
   return (
-    <Stack space={4}>
+    <Stack gap={4}>
       <Card padding={4} radius={2} shadow={1}>
-        <Stack space={4}>
+        <Stack gap={4}>
           <Flex align="center" justify="space-between">
             <Label size={1} weight="semibold">
               Bulk Upload ({images.length} images)
@@ -98,10 +100,10 @@ export function BulkAssetUpload({images, metadata, onUploadComplete}: BulkAssetU
             </Flex>
           </Flex>
 
-          <Grid columns={[2, 3, 4]} gap={3}>
+          <Grid gridTemplateColumns={[2, 3, 4]} gap={3}>
             {images.map((image, index) => (
               <Card key={index} radius={2} overflow="hidden" tone="transparent">
-                <Stack space={2}>
+                <Stack gap={2}>
                   <Box
                     style={{
                       position: 'relative',
@@ -114,7 +116,7 @@ export function BulkAssetUpload({images, metadata, onUploadComplete}: BulkAssetU
                     }}
                   >
                     <img
-                      src={`data:${image.mimeType};base64,${image.imageData}`}
+                      src={image.url || `data:${image.mimeType};base64,${image.imageData}`}
                       alt={`Image ${index + 1}`}
                       style={{
                         position: 'absolute',
@@ -172,7 +174,7 @@ export function BulkAssetUpload({images, metadata, onUploadComplete}: BulkAssetU
 
           {errors.length > 0 && (
             <Card padding={3} tone="critical">
-              <Stack space={2}>
+              <Stack gap={2}>
                 <Text size={1} weight="semibold">
                   Upload errors:
                 </Text>

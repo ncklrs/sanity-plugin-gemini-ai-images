@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 ### Prerequisites
 
-- Node.js >= 20.0.0
+- Node.js >= 22.22.2 (Node 24 LTS recommended)
 - npm >= 10.0.0
 
 ### Getting Started
@@ -40,7 +40,9 @@ This is a monorepo with multiple packages:
 packages/
 ├── core/                    # Main plugin (Studio UI, components)
 ├── adapter-nextjs/          # Next.js adapter
-└── adapter-serverless/      # Serverless adapter
+├── adapter-serverless/      # Serverless adapter
+├── contracts/               # Browser-safe types and capability validation
+└── engine/                  # Providers, quotas, auth, durable Sanity jobs
 ```
 
 ## Development Workflow
@@ -50,7 +52,7 @@ packages/
 1. **Create a feature branch:**
 
 ```bash
-git checkout -b feature/your-feature-name
+git checkout -b codex/your-feature-name
 ```
 
 2. **Make your changes** in the appropriate package(s)
@@ -138,11 +140,9 @@ Create a new package in `packages/adapter-yourplatform/`:
 
 ## Testing
 
-Currently there are no automated tests. When adding features:
+Run `npm run type-check`, `npm run lint`, `npm test`, `npm run build`, and `npm run test:packages`. Tests use a mocked Gemini transport to avoid API charges, and exercise model routing, request validation, hook payloads, MIME handling, partial uploads, and Sanity patches. CI checks Node 22 and 24.
 
-1. Test manually in a real Sanity project
-2. Test different scenarios (generation, error handling, etc.)
-3. Document any edge cases
+Before release, also smoke-test a real Studio against an authenticated backend and a disposable dataset. Verify the asset picker, standalone tool, custom field, and inline generator. Live generation is not part of CI.
 
 ## Questions?
 
@@ -154,3 +154,7 @@ Feel free to open an issue for:
 ## License
 
 By contributing, you agree that your contributions will be licensed under the MIT License.
+
+To check older Studio consumers after a UI or peer dependency change, run `npm run build && npm run test:compatibility`. Use `npm run test:compatibility -- 5` (or 6) for one version. This installs isolated packed-package fixtures in the system temporary directory and requires registry access. CI runs both versions.
+
+Use `npm run test:examples` for integration fixtures and `npm run test:compatibility` for packed Studio 5/6 consumers. Never use live provider credentials in unit tests. Read `docs/MIGRATION-V2.md` before changing authentication, quota state or reference permissions.

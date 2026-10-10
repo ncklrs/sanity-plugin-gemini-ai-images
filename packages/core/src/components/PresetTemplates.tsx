@@ -1,5 +1,6 @@
+import {Stack, Grid} from '../lib/ui-compat.js'
 import React from 'react'
-import {Card, Stack, Text, Grid, Button} from '@sanity/ui'
+import {Card, Text, Button} from '@sanity/ui'
 import {promptTemplates, templateCategories} from '../lib/prompt-templates.js'
 import type {AspectRatio} from '../types.js'
 
@@ -15,13 +16,13 @@ export function PresetTemplates({onSelectTemplate}: PresetTemplatesProps) {
   )
 
   return (
-    <Stack space={3}>
+    <Stack gap={3}>
       <Text size={1} weight="semibold">
         Quick Templates
       </Text>
 
       {/* Category Tabs */}
-      <Grid columns={5} gap={2}>
+      <Grid gridTemplateColumns={5} gap={2}>
         {Object.entries(templateCategories).map(([key, label]) => (
           <Button
             key={key}
@@ -35,7 +36,7 @@ export function PresetTemplates({onSelectTemplate}: PresetTemplatesProps) {
       </Grid>
 
       {/* Templates */}
-      <Grid columns={2} gap={3}>
+      <Grid gridTemplateColumns={2} gap={3}>
         {filteredTemplates.map(([key, template]) => (
           <Card
             key={key}
@@ -55,7 +56,7 @@ export function PresetTemplates({onSelectTemplate}: PresetTemplatesProps) {
               })
             }}
           >
-            <Stack space={2}>
+            <Stack gap={2}>
               <Text size={1} weight="semibold">
                 {template.name}
               </Text>

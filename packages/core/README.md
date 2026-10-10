@@ -1,71 +1,27 @@
-# sanity-plugin-gemini-ai-images
+# Sanity AI Images Studio plugin
 
-Core plugin for AI-powered image generation in Sanity Studio using Google Gemini.
+Supports Studio 5/6, UI 3/4 and React 19.2.3+. Generate/edit with selectable Gemini Pro/Flash or OpenAI image models; optionally enable durable jobs and a separate Veo view.
 
-## Installation
-
-```bash
-npm install sanity-plugin-gemini-ai-images
-```
-
-### Compatibility
-
-| Sanity Version | React Version |
-|----------------|---------------|
-| v3.x, v4.x     | ^18.0.0       |
-| v5.x           | ^19.2.0       |
-
-> **Note:** Sanity v5 requires React 19.2 or later. If using Sanity v3 or v4, React 18.x is supported.
-
-**Note**: This is the core plugin only. You also need an adapter for your backend framework:
-
-- Next.js: `npm install sanity-plugin-gemini-ai-images-nextjs`
-- Serverless: `npm install sanity-plugin-gemini-ai-images-serverless`
-
-## Usage
-
-See the [main repository README](https://github.com/ncklrs/sanity-plugin-gemini-ai-images) for complete setup instructions.
-
-### Basic Setup
-
-```typescript
-// sanity.config.ts
-import {defineConfig} from 'sanity'
-import {geminiAIImages} from 'sanity-plugin-gemini-ai-images'
-
-export default defineConfig({
-  plugins: [
-    geminiAIImages(),
-  ],
-})
-```
-
-### With Custom API Endpoint
-
-```typescript
+```tsx
+import {geminiAIImages,aiMediaSchemaTypes} from 'sanity-plugin-gemini-ai-images'
+// Add aiMediaSchemaTypes to schema.types; then:
 geminiAIImages({
-  apiEndpoint: '/api/custom/generate-image',
+ apiEndpoint:'https://your-backend.example/api/ai',
+ jobsEndpoint:'https://your-backend.example/api/ai/jobs',
+ referenceEndpoint:'https://your-backend.example/api/ai/reference',
+ getRequestHeaders:async()=>({Authorization:`Bearer ${await getSessionSanityToken()}`}),
+ defaultModel:'gemini-3.1-flash-image',
+ availableModels:['gemini-3.1-flash-image','gemini-3-pro-image','gpt-image-2.5-sunburst'],
+ enableStandaloneTool:true,enableHistory:true,enableAssetReferences:true,enableBrandPresets:true,
 })
 ```
 
-## Exported Components
+Supply your application's fresh user token in `getRequestHeaders`. Provider/service keys belong only on the server. Configure the server adapter's authorization, origin allowlist and quotas independently.
 
-### For Advanced Usage
+Exports include `ImageObjectInput` (opt-in `enableAIGeneration`), `ImageGalleryInput` (arrays of image members), `ImageGeneratorContent`, `ImageStudioTool`, creative/job/history components, hooks, schemas and editorial helpers. Individual field patches preserve crop/hotspot/custom fields. Gallery arrays with several image member types require an explicit `imageType`.
 
-```typescript
-import {
-  ImageGeneratorContent,
-  PromptBuilder,
-  PresetTemplates,
-  createGeminiAssetSource,
-  useGeminiGeneration,
-  useImageUpload,
-  uploadImageToSanity,
-  promptTemplates,
-  templateCategories,
-} from 'sanity-plugin-gemini-ai-images'
-```
+History/presets/sessions live in Sanity documents; images/videos live in assets. Register the schema exports for these features. Reopened history restores supported model/creative settings and uses the saved image as a new reference. Session saves are asynchronous; loaded images provide assetId/url rather than persisted base64. Local recovery storage contains only scoped job IDs/keys.
 
-## License
+Metadata suggestions require an optional server callback plus `suggestionsEndpoint`. Costs use configured administrator estimates, not guaranteed billing. Durable series use references/optional subject anchors; a mounted Studio advances one item at a time. Unattended runs require your own server worker. Video needs explicit enablement and server entitlement.
 
-MIT © Nick Jensen
+Full setup, compatibility and release migration: [repository guide](https://github.com/ncklrs/sanity-plugin-gemini-ai-images), [typed Studio fixture](https://github.com/ncklrs/sanity-plugin-gemini-ai-images/blob/main/examples/integration/studio.tsx), [migration](https://github.com/ncklrs/sanity-plugin-gemini-ai-images/blob/main/docs/MIGRATION-V2.md).

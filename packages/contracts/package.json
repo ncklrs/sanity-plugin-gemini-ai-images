@@ -1,0 +1,30 @@
+{
+  "name": "sanity-plugin-gemini-ai-images-contracts",
+  "version": "1.0.0",
+  "description": "Shared contracts for Sanity AI media generation",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20.19 <22 || >=22.12"
+  }
+}

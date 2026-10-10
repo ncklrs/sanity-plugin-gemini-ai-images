@@ -1,8 +1,10 @@
-import {Box, Card, Flex, Label, Select, Stack, Text} from '@sanity/ui'
+import {Stack} from '../../lib/ui-compat.js'
+import {Box, Card, Flex, Label, Select, Text} from '@sanity/ui'
 import {useCallback} from 'react'
 import type {VariationType, ConsistencyLevel} from '../../types.js'
 
 interface SeriesConfigPanelProps {
+  maxQuantity?: number
   quantity: number
   variationType: VariationType
   consistencyLevel: ConsistencyLevel
@@ -12,6 +14,7 @@ interface SeriesConfigPanelProps {
 }
 
 export function SeriesConfigPanel({
+  maxQuantity = 10,
   quantity,
   variationType,
   consistencyLevel,
@@ -42,14 +45,14 @@ export function SeriesConfigPanel({
 
   return (
     <Card padding={4} radius={2} shadow={1}>
-      <Stack space={4}>
+      <Stack gap={4}>
         <Box>
           <Label size={1} weight="semibold" muted>
             Series Configuration
           </Label>
         </Box>
 
-        <Stack space={3}>
+        <Stack gap={3}>
           <Flex align="center" justify="space-between">
             <Label size={1}>Quantity</Label>
             <Text size={1} weight="semibold">
@@ -57,9 +60,10 @@ export function SeriesConfigPanel({
             </Text>
           </Flex>
           <input
+            aria-label="Series quantity"
             type="range"
             min="2"
-            max="10"
+            max={maxQuantity}
             step="1"
             value={quantity}
             onChange={handleQuantityChange}
@@ -67,9 +71,13 @@ export function SeriesConfigPanel({
           />
         </Stack>
 
-        <Stack space={2}>
+        <Stack gap={2}>
           <Label size={1}>Variation Type</Label>
-          <Select value={variationType} onChange={handleVariationTypeChange}>
+          <Select
+            aria-label="Variation type"
+            value={variationType}
+            onChange={handleVariationTypeChange}
+          >
             <option value="angle">Different Angles</option>
             <option value="context">Different Contexts</option>
             <option value="background">Different Backgrounds</option>
@@ -77,18 +85,25 @@ export function SeriesConfigPanel({
             <option value="custom">Custom Variations</option>
           </Select>
           <Text size={0} muted>
-            {variationType === 'angle' && 'Generate the same subject from various camera angles'}
+            {variationType === 'angle' &&
+              'Generate the same subject from various camera angles'}
             {variationType === 'context' &&
               'Show the subject in different settings or environments'}
-            {variationType === 'background' && 'Keep subject consistent, vary backgrounds'}
-            {variationType === 'lighting' && 'Maintain composition, vary lighting moods'}
+            {variationType === 'background' &&
+              'Keep subject consistent, vary backgrounds'}
+            {variationType === 'lighting' &&
+              'Maintain composition, vary lighting moods'}
             {variationType === 'custom' && 'Use custom variation prompts'}
           </Text>
         </Stack>
 
-        <Stack space={2}>
+        <Stack gap={2}>
           <Label size={1}>Consistency Level</Label>
-          <Select value={consistencyLevel} onChange={handleConsistencyLevelChange}>
+          <Select
+            aria-label="Consistency level"
+            value={consistencyLevel}
+            onChange={handleConsistencyLevelChange}
+          >
             <option value="strict">Strict - Minimal variation</option>
             <option value="moderate">Moderate - Balanced variation</option>
             <option value="loose">Loose - Creative freedom</option>

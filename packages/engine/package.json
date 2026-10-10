@@ -1,0 +1,34 @@
+{
+  "name": "sanity-plugin-gemini-ai-images-engine",
+  "version": "1.0.0",
+  "description": "Shared engine for Sanity AI media generation",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "@google/genai": "^2.28.0",
+    "sanity-plugin-gemini-ai-images-contracts": "^1.0.0"
+  }
+}

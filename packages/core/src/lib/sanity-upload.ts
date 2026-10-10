@@ -5,14 +5,18 @@ export async function uploadImageToSanity(
   client: SanityClient,
   imageData: string, // Base64
   filename: string,
-  metadata?: GenerationMetadata
+  metadata?: GenerationMetadata,
+  mimeType: string = 'image/png',
 ): Promise<SanityImageAsset> {
   // Convert base64 to blob
-  const blob = base64ToBlob(imageData, 'image/png')
+  const extensions: Record<string, string> = {'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp'}
+  const extension = extensions[mimeType]
+  if (!extension) throw new Error('Unsupported generated image MIME type')
+  const blob = base64ToBlob(imageData, mimeType)
 
   // Upload to Sanity
   const asset = await client.assets.upload('image', blob, {
-    filename: `${filename}.png`,
+    filename: `${filename}.${extension}`,
     title: filename,
     description: metadata?.prompt,
   })

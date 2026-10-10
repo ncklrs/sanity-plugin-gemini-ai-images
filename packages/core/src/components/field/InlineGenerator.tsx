@@ -1,10 +1,11 @@
-import {Button, Card, Popover} from '@sanity/ui'
-import {ImageIcon} from '@sanity/icons'
+import {GeneratorPopover} from '../../lib/ui-compat.js'
+import {Button, Card} from '@sanity/ui'
+import {ImageIcon} from '@sanity/icons/Image'
 import {useCallback, useState} from 'react'
 import {ImageGeneratorContent} from '../ImageGeneratorContent.js'
-import type {SanityImageAsset} from '../../types.js'
+import type {SanityImageAsset, GeminiPluginConfig} from '../../types.js'
 
-interface InlineGeneratorProps {
+interface InlineGeneratorProps extends GeminiPluginConfig {
   onImageGenerated: (asset: SanityImageAsset) => void
   apiEndpoint?: string
   buttonText?: string
@@ -31,6 +32,7 @@ export function InlineGenerator({
   buttonText = 'Generate with AI',
   buttonMode = 'default',
   buttonTone = 'primary',
+  ...options
 }: InlineGeneratorProps) {
   const [open, setOpen] = useState(false)
 
@@ -43,16 +45,18 @@ export function InlineGenerator({
   )
 
   return (
-    <Popover
+    <GeneratorPopover
       content={
         <Card padding={4} style={{width: '600px', maxWidth: '90vw'}}>
           <ImageGeneratorContent
             apiEndpoint={apiEndpoint}
+            {...options}
             onImageGenerated={handleImageGenerated}
           />
         </Card>
       }
       open={open}
+      onClose={() => setOpen(false)}
       portal
     >
       <Button
@@ -62,6 +66,6 @@ export function InlineGenerator({
         tone={buttonTone}
         onClick={() => setOpen(!open)}
       />
-    </Popover>
+    </GeneratorPopover>
   )
 }
