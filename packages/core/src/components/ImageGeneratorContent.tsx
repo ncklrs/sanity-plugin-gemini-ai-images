@@ -1,5 +1,8 @@
-import {useState, useCallback} from 'react'
-import {Stack, TextArea, Select, Button, Card, Flex, Text, Box, Tab, TabList, TabPanel, useToast} from '@sanity/ui'
+import {useState, useCallback, useMemo} from 'react'
+import {TextArea, Button, Card, Flex, Text, Box, Tab, TabPanel} from '@sanity/ui'
+import {NoticeCard, Stack, TabList, useNotice} from './ui/compat.js'
+import {GenerationSettings} from './GenerationSettings.js'
+import {resolveDefaultModel, resolveModels} from '../lib/models.js'
 import {useClient} from 'sanity'
 import {useGeminiGeneration} from '../hooks/useGeminiGeneration.js'
 import {useImageUpload} from '../hooks/useImageUpload.js'
@@ -11,14 +14,21 @@ import {EditPromptTemplates} from './EditPromptTemplates.js'
 import {SeriesConfigPanel} from './series/SeriesConfigPanel.js'
 import {VariationTemplates} from './series/VariationTemplates.js'
 import {SeriesPreview} from './series/SeriesPreview.js'
-import type {GenerationMode, AspectRatio, SanityImageAsset, VariationType, ConsistencyLevel, SeriesImageResult} from '../types.js'
+import type {
+  GenerationMode,
+  AspectRatio,
+  GeneratorSettings,
+  ImageSize,
+  SanityImageAsset,
+  VariationType,
+  ConsistencyLevel,
+  SeriesImageResult,
+} from '../types.js'
 
-interface ImageGeneratorContentProps {
+interface ImageGeneratorContentProps extends GeneratorSettings {
   mode?: GenerationMode
   existingImage?: any
   onImageGenerated: (asset: SanityImageAsset) => void
-  apiEndpoint?: string
-  apiKey?: string
 }
 
 export function ImageGeneratorContent({
@@ -27,32 +37,63 @@ export function ImageGeneratorContent({
   onImageGenerated,
   apiEndpoint = '/api/gemini/generate-image',
   apiKey,
+  models: configuredModels,
+  defaultModel,
+  maxSeriesQuantity = 10,
+  defaultConsistencyLevel = 'moderate',
 }: ImageGeneratorContentProps) {
+  const models = useMemo(() => resolveModels(configuredModels), [configuredModels])
+  const seriesMax = Math.min(Math.max(maxSeriesQuantity, 2), 10)
   const client = useClient({apiVersion: '2024-01-01'})
-  const toast = useToast()
+  const {notice, push: notify} = useNotice()
   const [activeTab, setActiveTab] = useState<'single' | 'series'>('single')
   const [currentMode, setCurrentMode] = useState<GenerationMode>(mode)
   const [prompt, setPrompt] = useState('')
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1')
+  const [model, setModel] = useState(() => resolveDefaultModel(models, defaultModel))
+  const [imageSize, setImageSize] = useState<ImageSize | undefined>(undefined)
+  const [previewModel, setPreviewModel] = useState<string>(model)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [useTemplateBuilder, setUseTemplateBuilder] = useState(false)
   const [baseImageFile, setBaseImageFile] = useState<File | null>(null)
   const [baseImagePreview, setBaseImagePreview] = useState<string | null>(null)
 
   // Series generation state
-  const [seriesQuantity, setSeriesQuantity] = useState(5)
+  const [seriesQuantity, setSeriesQuantity] = useState(Math.min(5, seriesMax))
   const [variationType, setVariationType] = useState<VariationType>('angle')
-  const [consistencyLevel, setConsistencyLevel] = useState<ConsistencyLevel>('moderate')
+  const [consistencyLevel, setConsistencyLevel] = useState<ConsistencyLevel>(defaultConsistencyLevel)
   const [selectedVariations, setSelectedVariations] = useState<string[]>([])
   const [seriesImages, setSeriesImages] = useState<SeriesImageResult[]>([])
   const [seriesBaseImage, setSeriesBaseImage] = useState<File | null>(null)
   const [seriesBaseImagePreview, setSeriesBaseImagePreview] = useState<string | null>(null)
   const [detailedSubjectPrompt, setDetailedSubjectPrompt] = useState('')
+  const [seriesModel, setSeriesModel] = useState<string>(model)
 
   const {generateImage, editImage, loading: generating, error: generationError} = useGeminiGeneration(apiEndpoint, apiKey)
   const {uploadImage, uploading, error: uploadError} = useImageUpload()
   const {generateSeries, loading: generatingSeries, error: seriesError} = useSeriesGeneration(apiEndpoint, apiKey)
   const {uploadBatch, uploading: uploadingBatch, uploadProgress} = useBatchUpload()
+
+  const handleModelChange = useCallback(
+    (nextModel: string) => {
+      setModel(nextModel)
+      const sizes = models.find((option) => option.id === nextModel)?.imageSizes ?? []
+      setImageSize((current) => (current && sizes.includes(current) ? current : undefined))
+    },
+    [models],
+  )
+
+  const settings = (
+    <GenerationSettings
+      models={models}
+      model={model}
+      onModelChange={handleModelChange}
+      aspectRatio={aspectRatio}
+      onAspectRatioChange={setAspectRatio}
+      imageSize={imageSize}
+      onImageSizeChange={setImageSize}
+    />
+  )
 
   const resetForm = useCallback(() => {
     setPrompt('')
@@ -92,35 +133,42 @@ export function ImageGeneratorContent({
   const handleGenerate = async () => {
     if (!prompt.trim()) return
 
+    const config = {aspectRatio, model, imageSize}
     try {
       let result
 
       if (currentMode === 'edit') {
         // Use uploaded image file or existing image from Sanity
         if (baseImageFile) {
-          result = await editImage(baseImageFile, prompt, {aspectRatio})
-        } else if (existingImage?.asset) {
-          // Fetch existing image blob from Sanity
-          const imageUrl = client.config().dataset
-            ? `https://cdn.sanity.io/images/${client.config().projectId}/${client.config().dataset}/${existingImage.asset._ref.replace('image-', '').replace('-png', '.png').replace('-jpg', '.jpg')}`
-            : ''
-
+          result = await editImage(baseImageFile, prompt, config)
+        } else if (existingImage?.asset?._ref) {
+          const imageUrl = await client.fetch<string | null>('*[_id == $id][0].url', {
+            id: existingImage.asset._ref,
+          })
+          if (!imageUrl) {
+            throw new Error('Could not find the existing image')
+          }
           const response = await fetch(imageUrl)
-          const blob = await response.blob()
-
-          result = await editImage(blob, prompt, {aspectRatio})
+          if (!response.ok) {
+            throw new Error(`Could not load the existing image (HTTP ${response.status})`)
+          }
+          result = await editImage(await response.blob(), prompt, config)
         }
       } else {
-        result = await generateImage(prompt, {aspectRatio})
+        result = await generateImage(prompt, config)
       }
 
       if (result) {
-        // Show preview
-        const previewUrl = `data:${result.mimeType};base64,${result.imageData}`
-        setPreviewImage(previewUrl)
+        setPreviewImage(`data:${result.mimeType};base64,${result.imageData}`)
+        setPreviewModel(result.model ?? model)
       }
     } catch (error) {
       console.error('Image generation failed:', error)
+      notify({
+        status: 'error',
+        title: 'Image generation failed',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+      })
     }
   }
 
@@ -131,31 +179,37 @@ export function ImageGeneratorContent({
       const base64Parts = previewImage.split(',')
       if (base64Parts.length < 2) {
         console.error('Invalid preview image format')
-        toast.push({
+        notify({
           status: 'error',
           title: 'Invalid image format',
         })
         return
       }
       const base64Data = base64Parts[1]
+      const mimeType = base64Parts[0].match(/^data:([^;]+)/)?.[1] ?? 'image/png'
       if (!base64Data) {
         console.error('No base64 data found in preview image')
-        toast.push({
+        notify({
           status: 'error',
           title: 'No image data found',
         })
         return
       }
 
-      const asset = await uploadImage(base64Data, `gemini-generated-${Date.now()}`, {
-        prompt,
-        model: 'gemini-2.5-flash-image',
-        generationParams: {aspectRatio},
-      })
+      const asset = await uploadImage(
+        base64Data,
+        `gemini-generated-${Date.now()}`,
+        {
+          prompt,
+          model: previewModel,
+          generationParams: {aspectRatio, imageSize},
+        },
+        mimeType,
+      )
 
       if (asset) {
         onImageGenerated(asset)
-        toast.push({
+        notify({
           status: 'success',
           title: 'Image saved successfully',
           description: 'Your generated image has been added to the asset library',
@@ -165,7 +219,7 @@ export function ImageGeneratorContent({
       }
     } catch (error) {
       console.error('Failed to save image:', error)
-      toast.push({
+      notify({
         status: 'error',
         title: 'Failed to save image',
         description: error instanceof Error ? error.message : 'An unknown error occurred',
@@ -175,7 +229,7 @@ export function ImageGeneratorContent({
 
   const handleGenerateSeries = async () => {
     if (selectedVariations.length === 0) {
-      toast.push({
+      notify({
         status: 'warning',
         title: 'No variations selected',
         description: 'Please select at least one variation template',
@@ -189,7 +243,7 @@ export function ImageGeneratorContent({
       : prompt.trim()
 
     if (!completePrompt) {
-      toast.push({
+      notify({
         status: 'warning',
         title: 'Missing description',
         description: 'Please provide either a detailed subject description or base context',
@@ -204,18 +258,21 @@ export function ImageGeneratorContent({
         consistencyLevel,
         variations: selectedVariations,
         aspectRatio,
+        model,
+        imageSize,
         baseImage: seriesBaseImage || undefined,
       })
 
       setSeriesImages(result.images)
-      toast.push({
+      setSeriesModel(result.metadata.model ?? model)
+      notify({
         status: 'success',
         title: 'Series generated',
         description: `${result.images.length} images created successfully`,
       })
     } catch (error) {
       console.error('Series generation failed:', error)
-      toast.push({
+      notify({
         status: 'error',
         title: 'Series generation failed',
         description: error instanceof Error ? error.message : 'An unknown error occurred',
@@ -232,9 +289,10 @@ export function ImageGeneratorContent({
         })),
         selectedImages.map((img, index) => ({
           prompt: `${prompt} - ${img.variation}`,
-          model: 'gemini-2.5-flash-image',
+          model: seriesModel,
           generationParams: {
             aspectRatio,
+            imageSize,
             seriesIndex: index,
             variation: img.variation,
           },
@@ -244,7 +302,7 @@ export function ImageGeneratorContent({
       // Return first asset to maintain compatibility with single image workflow
       if (assets.length > 0) {
         onImageGenerated(assets[0])
-        toast.push({
+        notify({
           status: 'success',
           title: `${assets.length} image${assets.length > 1 ? 's' : ''} saved successfully`,
           description: 'Your generated images have been added to the asset library',
@@ -256,7 +314,7 @@ export function ImageGeneratorContent({
       }
     } catch (error) {
       console.error('Failed to upload series:', error)
-      toast.push({
+      notify({
         status: 'error',
         title: 'Failed to upload series',
         description: error instanceof Error ? error.message : 'An unknown error occurred',
@@ -414,24 +472,11 @@ export function ImageGeneratorContent({
         </Stack>
       )}
 
-      {/* Aspect Ratio */}
-      <Stack space={2}>
-        <Text size={1} weight="semibold">
-          Aspect Ratio
-        </Text>
-        <Select value={aspectRatio} onChange={(e) => setAspectRatio(e.currentTarget.value as AspectRatio)}>
-          <option value="1:1">Square (1:1)</option>
-          <option value="16:9">Landscape (16:9)</option>
-          <option value="9:16">Portrait (9:16)</option>
-          <option value="4:3">Classic (4:3)</option>
-          <option value="3:2">Standard (3:2)</option>
-          <option value="2:3">Portrait Standard (2:3)</option>
-          <option value="3:4">Portrait Classic (3:4)</option>
-          <option value="4:5">Portrait Social (4:5)</option>
-          <option value="5:4">Landscape Social (5:4)</option>
-          <option value="21:9">Ultrawide (21:9)</option>
-        </Select>
-      </Stack>
+      {/* Model, aspect ratio, and resolution */}
+
+      {settings}
+
+      <NoticeCard notice={notice} />
 
       {/* Errors */}
       {(generationError || uploadError) && (
@@ -491,6 +536,7 @@ export function ImageGeneratorContent({
             onQuantityChange={setSeriesQuantity}
             onVariationTypeChange={setVariationType}
             onConsistencyLevelChange={setConsistencyLevel}
+            maxQuantity={seriesMax}
           />
 
           {/* Reference Image Upload (Optional) */}
@@ -582,24 +628,9 @@ export function ImageGeneratorContent({
             </Text>
           </Stack>
 
-          {/* Aspect Ratio */}
-          <Stack space={2}>
-            <Text size={1} weight="semibold">
-              Aspect Ratio
-            </Text>
-            <Select value={aspectRatio} onChange={(e) => setAspectRatio(e.currentTarget.value as AspectRatio)}>
-              <option value="1:1">Square (1:1)</option>
-              <option value="16:9">Landscape (16:9)</option>
-              <option value="9:16">Portrait (9:16)</option>
-              <option value="4:3">Classic (4:3)</option>
-              <option value="3:2">Standard (3:2)</option>
-              <option value="2:3">Portrait Standard (2:3)</option>
-              <option value="3:4">Portrait Classic (3:4)</option>
-              <option value="4:5">Portrait Social (4:5)</option>
-              <option value="5:4">Landscape Social (5:4)</option>
-              <option value="21:9">Ultrawide (21:9)</option>
-            </Select>
-          </Stack>
+          {/* Model, aspect ratio, and resolution */}
+
+          {settings}
 
           {/* Variation Templates */}
           <VariationTemplates
@@ -608,6 +639,8 @@ export function ImageGeneratorContent({
             onVariationsChange={setSelectedVariations}
             quantity={seriesQuantity}
           />
+
+          <NoticeCard notice={notice} />
 
           {/* Errors */}
           {seriesError && (
@@ -623,7 +656,11 @@ export function ImageGeneratorContent({
               tone="primary"
               loading={generatingSeries}
               onClick={handleGenerateSeries}
-              disabled={!prompt.trim() || selectedVariations.length === 0 || generatingSeries}
+              disabled={
+                (!prompt.trim() && !detailedSubjectPrompt.trim()) ||
+                selectedVariations.length === 0 ||
+                generatingSeries
+              }
             />
           )}
 

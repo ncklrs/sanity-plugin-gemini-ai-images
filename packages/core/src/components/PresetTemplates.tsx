@@ -1,5 +1,6 @@
 import React from 'react'
-import {Card, Stack, Text, Grid, Button} from '@sanity/ui'
+import {Card, Text, Button} from '@sanity/ui'
+import {Grid, Stack} from './ui/compat.js'
 import {promptTemplates, templateCategories} from '../lib/prompt-templates.js'
 import type {AspectRatio} from '../types.js'
 

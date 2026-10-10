@@ -1,7 +1,7 @@
 {
   "name": "sanity-plugin-gemini-ai-images-serverless",
-  "version": "1.1.0",
-  "description": "Serverless adapter for Sanity Gemini AI Image Generator (Vercel, Netlify, etc.)",
+  "version": "1.2.0",
+  "description": "Serverless adapter for Sanity Gemini AI Image Generator (Vercel, Netlify, any Fetch API runtime)",
   "keywords": [
     "sanity",
     "sanity-plugin",
@@ -46,10 +46,10 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/genai": "^1.0.0"
+    "@google/genai": "^2.28.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^22.0.0",
     "typescript": "^5.9.0"
   },
   "engines": {

@@ -2,12 +2,12 @@
 
 Serverless adapter for the Sanity Gemini AI Image Generator plugin.
 
-Works with Vercel Functions, Netlify Functions, AWS Lambda, and other serverless platforms.
+The handler uses the Web standard `Request`/`Response` API, so it runs on Vercel Functions, Netlify Functions (v2), Next.js route handlers, and other Fetch API runtimes. It is also the shared server implementation used by the Next.js adapter.
 
 ## Installation
 
 ```bash
-npm install sanity-plugin-gemini-ai-images sanity-plugin-gemini-ai-images-serverless @google/genai
+npm install sanity-plugin-gemini-ai-images sanity-plugin-gemini-ai-images-serverless
 ```
 
 ## Setup
@@ -22,13 +22,13 @@ import {geminiAIImages} from 'sanity-plugin-gemini-ai-images'
 export default defineConfig({
   plugins: [
     geminiAIImages({
-      apiEndpoint: '/api/gemini/generate-image', // or your custom path
+      apiEndpoint: 'https://your-site.com/api/gemini/generate-image',
     }),
   ],
 })
 ```
 
-### 2. Create Serverless Function
+### 2. Create the Function
 
 **Vercel Functions:**
 
@@ -39,148 +39,122 @@ import {handler} from 'sanity-plugin-gemini-ai-images-serverless'
 export default handler
 ```
 
-**Netlify Functions:**
+**Netlify Functions (v2):**
 
 ```typescript
 // netlify/functions/generate-image.ts
 import {handler} from 'sanity-plugin-gemini-ai-images-serverless'
 
-export {handler}
-```
+export default handler
 
-**AWS Lambda (with API Gateway):**
-
-```typescript
-// lambda/generate-image.ts
-import {handler} from 'sanity-plugin-gemini-ai-images-serverless'
-
-export {handler}
+export const config = {path: '/api/gemini/generate-image'}
 ```
 
 ### 3. Set Environment Variables
 
-**Vercel:**
-```bash
-# .env or Vercel Dashboard
-GEMINI_API_KEY=your_api_key_here
-SANITY_PROJECT_ID=your_project_id
-SANITY_DATASET=production
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | Yes | Google Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey) |
+| `GEMINI_IMAGE_MODEL` | No | Model used when the Studio does not send one (default `gemini-nano-banana-2.1`) |
+| `GEMINI_ALLOWED_MODELS` | No | Comma separated models the endpoint accepts. Defaults to all built-in models. |
+| `GEMINI_PLUGIN_API_KEY` | No | Shared secret the Studio must send as `X-API-Key` |
+| `GEMINI_CORS_ORIGIN` | No | Comma separated allowed origins (default `*`) |
+
+## Custom Handler
+
+Use `createImageHandler` to configure the handler in code instead of environment variables:
+
+```typescript
+import {createImageHandler, createGeminiProvider} from 'sanity-plugin-gemini-ai-images-serverless'
+
+export default createImageHandler({
+  provider: createGeminiProvider({apiKey: process.env.MY_GEMINI_KEY}),
+  allowedModels: ['gemini-nano-banana-2.1', 'gemini-3-pro-image'],
+  defaultModel: 'gemini-nano-banana-2.1',
+  apiKey: process.env.MY_PLUGIN_SECRET,
+  corsOrigin: ['https://your-studio.sanity.studio', 'http://localhost:3333'],
+  // Series images are generated one at a time by default for consistency.
+  // Raise this if your platform has a short function timeout.
+  seriesConcurrency: 1,
+})
 ```
 
-**Netlify:**
-```bash
-# netlify.toml or Netlify Dashboard
-[build.environment]
-  GEMINI_API_KEY = "your_api_key_here"
-  SANITY_PROJECT_ID = "your_project_id"
-  SANITY_DATASET = "production"
+### Custom Providers
+
+The handler talks to image backends through a small `ImageProvider` interface, so other services can be plugged in:
+
+```typescript
+import {createImageHandler, type ImageProvider} from 'sanity-plugin-gemini-ai-images-serverless'
+
+const myProvider: ImageProvider = {
+  name: 'my-provider',
+  async generate({prompt, model, aspectRatio, imageSize, baseImage, baseImageMimeType}) {
+    // Call your image API and return base64 image data
+    return {imageData: '...', mimeType: 'image/png'}
+  },
+}
+
+export default createImageHandler({provider: myProvider, allowedModels: ['my-model']})
 ```
 
-**AWS Lambda:**
-Set via AWS Console → Lambda → Configuration → Environment variables:
-- `GEMINI_API_KEY`: your_api_key_here
-- `SANITY_PROJECT_ID`: your_project_id
-- `SANITY_DATASET`: production
+## API
 
-Get your Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+`POST` with a JSON body:
 
-**Important**:
-- The Sanity project ID and dataset are required for authentication verification
-- These should match your Sanity Studio configuration
+```jsonc
+{
+  "prompt": "A ceramic mug on a walnut table",
+  "model": "gemini-3-pro-image",   // optional, must be allowed
+  "aspectRatio": "16:9",           // optional
+  "imageSize": "2K",               // optional: 1K, 2K, 4K
+  "mode": "edit",                  // "generate" (default) or "edit"
+  "baseImage": "<base64>",         // edit mode only
+  "baseImageMimeType": "image/jpeg",
+  "series": {                      // optional
+    "quantity": 4,
+    "consistencyPrompt": "Keep the same mug",
+    "variations": ["front", "side", "top", "in use"]
+  }
+}
+```
 
-## Platform-Specific Notes
+Single image responses return `{imageData, mimeType, model}`. Series responses return `{images, metadata}` with status 200, or 207 with `errors` when some images fail.
 
-### Vercel
+## Platform Notes
 
-- Function timeout: Default is 10s, but image generation may take longer
-- Increase timeout in `vercel.json`:
+### Timeouts
+
+Image generation takes 10-30 seconds per image, and series run sequentially by default. Raise your function timeout:
+
+- **Vercel**: set `maxDuration` in `vercel.json` (60s or more, 300s for large series)
+- **Netlify**: synchronous functions have a short, plan dependent limit; keep series small or raise `seriesConcurrency`
 
 ```json
 {
   "functions": {
     "api/gemini/generate-image.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     }
   }
 }
 ```
 
-### Netlify
+### Other runtimes
 
-- Function timeout: Default is 10s for free tier, 26s for Pro
-- For longer timeouts, upgrade to Pro or use background functions
-- Configure in `netlify.toml`:
+AWS Lambda and Cloudflare Workers do not call the handler with a `Request` directly. Wrap it with your platform's Request/Response adapter, and on Workers pass the key explicitly with `createGeminiProvider({apiKey: env.GEMINI_API_KEY})`.
 
-```toml
-[functions]
-  directory = "netlify/functions"
+## Security
 
-[[functions."generate-image"]]
-  timeout = 26
-```
+The endpoint spends your Gemini credits, so restrict it:
 
-### AWS Lambda
-
-- Default timeout is 3s - increase to at least 60s
-- Configure memory to at least 1024MB for better performance
-- Enable function URL or use API Gateway
-
-### Cloudflare Workers
-
-Not currently supported due to Workers' runtime limitations. Consider using Cloudflare Pages Functions instead, which support Node.js APIs.
-
-## Custom Endpoint Path
-
-If your function is at a different path, update the Sanity config:
-
-```typescript
-geminiAIImages({
-  apiEndpoint: '/api/custom/ai-images',
-})
-```
+- Set `GEMINI_CORS_ORIGIN` to your Studio's origin
+- Limit `GEMINI_ALLOWED_MODELS` to the models you want to pay for
+- Set `GEMINI_PLUGIN_API_KEY` (compared in constant time). Any key configured in the Studio is visible to Studio users, so also add rate limiting.
 
 ## Requirements
 
 - Node.js 20.0.0 or higher
-- Sanity Studio v4
-- Serverless platform that supports Node.js runtime
-
-## Authentication
-
-This adapter automatically verifies that requests come from authenticated Sanity Studio users. The authentication flow works as follows:
-
-1. The core plugin (in Sanity Studio) retrieves the user's token from the Sanity client
-2. The token is sent in the `Authorization: Bearer <token>` header with each request
-3. The adapter verifies the token against the Sanity API before processing the image generation request
-
-This ensures that only authenticated Sanity Studio users can generate images through your API endpoint.
-
-## Troubleshooting
-
-### Function Timeout
-
-Image generation can take 10-30 seconds. Increase your function timeout:
-
-- Vercel: Use `vercel.json` (see above)
-- Netlify: Upgrade to Pro for 26s timeout
-- AWS Lambda: Increase in function configuration
-
-### CORS Errors
-
-The handler includes CORS headers by default. If you still see errors, check your platform's CORS configuration.
-
-### Cold Starts
-
-First request may be slow due to cold starts. This is normal for serverless functions.
-
-### Unauthorized Error (401)
-
-If you receive "Unauthorized" errors:
-- Ensure you're logged into Sanity Studio
-- Verify `SANITY_PROJECT_ID` and `SANITY_DATASET` environment variables are set correctly
-- Check that the environment variables match your Sanity Studio configuration
-- Make sure your serverless platform has the environment variables configured
-- Note: Use `SANITY_PROJECT_ID` (not `NEXT_PUBLIC_SANITY_PROJECT_ID`) in serverless environments
+- Sanity Studio v3 to v6
 
 ## License
 

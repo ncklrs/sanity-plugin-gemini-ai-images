@@ -1,20 +1,18 @@
-import {Button, Card, Popover} from '@sanity/ui'
-import {ImageIcon} from '@sanity/icons'
+import {Box, Button, Dialog} from '@sanity/ui'
 import {useCallback, useState} from 'react'
 import {ImageGeneratorContent} from '../ImageGeneratorContent.js'
-import type {SanityImageAsset} from '../../types.js'
+import {AIImageIcon} from '../ui/compat.js'
+import type {GeneratorSettings, SanityImageAsset} from '../../types.js'
 
-interface InlineGeneratorProps {
+interface InlineGeneratorProps extends GeneratorSettings {
   onImageGenerated: (asset: SanityImageAsset) => void
-  apiEndpoint?: string
   buttonText?: string
   buttonMode?: 'default' | 'ghost' | 'bleed'
   buttonTone?: 'default' | 'primary' | 'positive' | 'caution' | 'critical'
 }
 
 /**
- * Inline AI image generator that opens in a popover.
- * Useful for compact inline generation UI.
+ * Button that opens the AI image generator in a dialog.
  *
  * Usage:
  * ```typescript
@@ -27,10 +25,10 @@ interface InlineGeneratorProps {
  */
 export function InlineGenerator({
   onImageGenerated,
-  apiEndpoint = '/api/gemini/generate-image',
   buttonText = 'Generate with AI',
   buttonMode = 'default',
   buttonTone = 'primary',
+  ...settings
 }: InlineGeneratorProps) {
   const [open, setOpen] = useState(false)
 
@@ -43,25 +41,21 @@ export function InlineGenerator({
   )
 
   return (
-    <Popover
-      content={
-        <Card padding={4} style={{width: '600px', maxWidth: '90vw'}}>
-          <ImageGeneratorContent
-            apiEndpoint={apiEndpoint}
-            onImageGenerated={handleImageGenerated}
-          />
-        </Card>
-      }
-      open={open}
-      portal
-    >
+    <>
       <Button
         text={buttonText}
-        icon={ImageIcon}
+        icon={AIImageIcon}
         mode={buttonMode}
         tone={buttonTone}
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen(true)}
       />
-    </Popover>
+      {open && (
+        <Dialog header="AI Image Generator" id="ai-inline-generator-dialog" onClose={() => setOpen(false)} width={2}>
+          <Box padding={4}>
+            <ImageGeneratorContent {...settings} onImageGenerated={handleImageGenerated} />
+          </Box>
+        </Dialog>
+      )}
+    </>
   )
 }

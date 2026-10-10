@@ -1,17 +1,10 @@
-import {Box, Card, Container, Flex, Heading, Stack} from '@sanity/ui'
+import {Box, Card, Container, Flex, Heading} from '@sanity/ui'
+import {Stack} from '../ui/compat.js'
 import {ImageGeneratorContent} from '../ImageGeneratorContent.js'
 import {useGenerationSession} from '../../hooks/useGenerationSession.js'
-import type {SanityImageAsset} from '../../types.js'
+import type {GeneratorSettings, SanityImageAsset} from '../../types.js'
 
-interface ImageStudioToolProps {
-  apiEndpoint?: string
-  apiKey?: string
-}
-
-export function ImageStudioTool({
-  apiEndpoint = '/api/gemini/generate-image',
-  apiKey
-}: ImageStudioToolProps) {
+export function ImageStudioTool(settings: GeneratorSettings) {
   const {saveSession} = useGenerationSession()
 
   const handleImageGenerated = (_asset: SanityImageAsset) => {
@@ -29,8 +22,7 @@ export function ImageStudioTool({
         <Card padding={0} radius={3} shadow={1}>
           <Box padding={4}>
             <ImageGeneratorContent
-              apiEndpoint={apiEndpoint}
-              apiKey={apiKey}
+              {...settings}
               onImageGenerated={handleImageGenerated}
             />
           </Box>

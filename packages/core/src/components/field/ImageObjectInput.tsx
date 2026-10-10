@@ -1,12 +1,12 @@
-import {Box, Button, Card, Dialog, Flex, Stack} from '@sanity/ui'
-import {ImageIcon} from '@sanity/icons'
+import {Box, Button, Card, Dialog, Flex} from '@sanity/ui'
+import {AIImageIcon, Stack} from '../ui/compat.js'
 import {useCallback, useState} from 'react'
-import {ImageInput, type ImageInputProps} from 'sanity'
+import {ImageInput, set, setIfMissing, type ImageInputProps} from 'sanity'
 import {ImageGeneratorContent} from '../ImageGeneratorContent.js'
-import type {SanityImageAsset} from '../../types.js'
+import type {GeneratorSettings, SanityImageAsset} from '../../types.js'
 
-interface ImageObjectInputProps extends ImageInputProps {
-  apiEndpoint?: string
+interface ImageObjectInputProps extends ImageInputProps, GeneratorSettings {
+  /** Show the "Generate with AI" panel. @default true */
   enableAIGeneration?: boolean
 }
 
@@ -26,27 +26,28 @@ interface ImageObjectInputProps extends ImageInputProps {
  * ```
  */
 export function ImageObjectInput(props: ImageObjectInputProps) {
-  const {apiEndpoint = '/api/gemini/generate-image', enableAIGeneration = false, onChange} = props
+  const {
+    apiEndpoint = '/api/gemini/generate-image',
+    apiKey,
+    models,
+    defaultModel,
+    maxSeriesQuantity,
+    defaultConsistencyLevel,
+    enableAIGeneration = true,
+    onChange,
+    schemaType,
+  } = props
   const [showGenerator, setShowGenerator] = useState(false)
 
   const handleImageGenerated = useCallback(
     (asset: SanityImageAsset) => {
-      // Create image value compatible with Sanity image fields
-      const imageValue = {
-        _type: 'image',
-        asset: {
-          _type: 'reference',
-          _ref: asset._id,
-        },
-      }
-
-      // Update the field value
-      onChange(imageValue as any)
+      // Only replace the asset so hotspot, crop, and custom fields are kept
+      onChange([setIfMissing({_type: schemaType.name}), set({_type: 'reference', _ref: asset._id}, ['asset'])])
 
       // Close the dialog
       setShowGenerator(false)
     },
-    [onChange],
+    [onChange, schemaType.name],
   )
 
   return (
@@ -60,11 +61,11 @@ export function ImageObjectInput(props: ImageObjectInputProps) {
           <Flex align="center" justify="space-between">
             <Box flex={1}>
               <Flex align="center" gap={2}>
-                <ImageIcon />
+                <AIImageIcon />
                 <Box>
                   <strong>AI Image Generation</strong>
                   <div style={{fontSize: '0.875rem', opacity: 0.8}}>
-                    Generate images using Google Gemini AI
+                    Generate images with Google Gemini
                   </div>
                 </Box>
               </Flex>
@@ -89,6 +90,11 @@ export function ImageObjectInput(props: ImageObjectInputProps) {
           <Box padding={4}>
             <ImageGeneratorContent
               apiEndpoint={apiEndpoint}
+              apiKey={apiKey}
+              models={models}
+              defaultModel={defaultModel}
+              maxSeriesQuantity={maxSeriesQuantity}
+              defaultConsistencyLevel={defaultConsistencyLevel}
               onImageGenerated={handleImageGenerated}
             />
           </Box>
