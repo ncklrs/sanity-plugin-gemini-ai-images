@@ -1,4 +1,5 @@
-import {Box, Button, Card, Checkbox, Flex, Grid, Label, Stack, Text} from '@sanity/ui'
+import {Box, Button, Card, Checkbox, Flex, Label, Text} from '@sanity/ui'
+import {Grid, Stack} from '../ui/compat.js'
 import {useCallback, useEffect, useState} from 'react'
 import type {SeriesImageResult} from '../../types.js'
 import {useBatchUpload} from '../../hooks/useBatchUpload.js'
@@ -98,7 +99,7 @@ export function BulkAssetUpload({images, metadata, onUploadComplete}: BulkAssetU
             </Flex>
           </Flex>
 
-          <Grid columns={[2, 3, 4]} gap={3}>
+          <Grid minColumnWidth={160} gap={3}>
             {images.map((image, index) => (
               <Card key={index} radius={2} overflow="hidden" tone="transparent">
                 <Stack space={2}>

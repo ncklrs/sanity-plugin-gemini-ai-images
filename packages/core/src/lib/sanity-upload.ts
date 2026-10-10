@@ -1,20 +1,28 @@
 import type {SanityClient} from 'sanity'
 import type {GenerationMetadata, SanityImageAsset} from '../types.js'
 
+const EXTENSIONS: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+}
+
 export async function uploadImageToSanity(
   client: SanityClient,
   imageData: string, // Base64
   filename: string,
-  metadata?: GenerationMetadata
+  metadata?: GenerationMetadata,
+  mimeType: string = 'image/png',
 ): Promise<SanityImageAsset> {
-  // Convert base64 to blob
-  const blob = base64ToBlob(imageData, 'image/png')
+  const blob = base64ToBlob(imageData, mimeType)
+  const extension = EXTENSIONS[mimeType] ?? 'png'
 
-  // Upload to Sanity
   const asset = await client.assets.upload('image', blob, {
-    filename: `${filename}.png`,
+    filename: `${filename}.${extension}`,
     title: filename,
     description: metadata?.prompt,
+    creditLine: metadata?.model ? `Generated with ${metadata.model}` : undefined,
   })
 
   return asset as SanityImageAsset
@@ -22,12 +30,9 @@ export async function uploadImageToSanity(
 
 function base64ToBlob(base64: string, mimeType: string): Blob {
   const byteString = atob(base64)
-  const arrayBuffer = new ArrayBuffer(byteString.length)
-  const uint8Array = new Uint8Array(arrayBuffer)
-
+  const bytes = new Uint8Array(byteString.length)
   for (let i = 0; i < byteString.length; i++) {
-    uint8Array[i] = byteString.charCodeAt(i)
+    bytes[i] = byteString.charCodeAt(i)
   }
-
-  return new Blob([arrayBuffer], {type: mimeType})
+  return new Blob([bytes], {type: mimeType})
 }

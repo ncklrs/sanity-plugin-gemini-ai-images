@@ -8,19 +8,20 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build -w packages/adapter-serverless && npm run build -w packages/adapter-nextjs -w packages/core",
     "dev": "npm run dev --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "type-check": "npm run type-check --workspaces --if-present",
+    "type-check": "npm run build -w packages/adapter-serverless && npm run type-check --workspaces --if-present",
+    "test": "vitest run",
     "clean": "rm -rf packages/*/dist packages/*/node_modules examples/*/node_modules node_modules"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^19.0.0",
-    "typescript": "^5.9.0"
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.3"
   },
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.12.0",
     "npm": ">=10.0.0"
   }
 }

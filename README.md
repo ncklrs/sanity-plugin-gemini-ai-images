@@ -1,6 +1,6 @@
 # Sanity Plugin: Gemini AI Image Generator
 
-AI-powered image generation for Sanity Studio using Google's Gemini 2.5 Flash Image model.
+AI-powered image generation for Sanity Studio using Google's Gemini image models (Nano Banana 2.1, Nano Banana Pro, and more).
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 [![npm version](https://img.shields.io/npm/v/sanity-plugin-gemini-ai-images.svg)](https://www.npmjs.com/package/sanity-plugin-gemini-ai-images)
@@ -33,6 +33,12 @@ AI-powered image generation for Sanity Studio using Google's Gemini 2.5 Flash Im
 - **Gallery Preview**: Review all generated images before uploading
 - **Selective Upload**: Choose which images from the series to save
 
+### Model Selection
+
+- **Pick a model per generation**: Nano Banana 2.1 (default), Nano Banana Pro, Nano Banana 2, Nano Banana 2 Lite, and the legacy Gemini 2.5 Flash Image
+- **Resolution control**: 1K, 2K, or 4K output on models that support it
+- **Configurable list**: Limit or rename the models editors can choose from, and enforce the same list on the server
+
 ### Core Features
 
 - **Seamless Integration**: Appears directly in Sanity Studio's image picker alongside Upload, Unsplash, etc.
@@ -63,7 +69,7 @@ _Upload and edit existing images with AI-powered modifications_
 ### 1. Install Packages
 
 ```bash
-npm install sanity-plugin-gemini-ai-images sanity-plugin-gemini-ai-images-nextjs @google/genai
+npm install sanity-plugin-gemini-ai-images sanity-plugin-gemini-ai-images-nextjs
 ```
 
 ### 2. Add Plugin to Sanity Config
@@ -86,52 +92,30 @@ export default defineConfig({
 
 ```typescript
 // app/api/gemini/generate-image/route.ts
-import { POST } from "sanity-plugin-gemini-ai-images-nextjs/route";
-
-export { POST };
+export { POST, OPTIONS } from "sanity-plugin-gemini-ai-images-nextjs/route";
 ```
 
-**CORS Configuration:**
+**CORS:** every response includes CORS headers (allowing `Content-Type`, `Authorization`, and `X-API-Key`). The default origin is `*`. If your Studio is hosted elsewhere (for example `studio.yoursite.com` or `*.sanity.studio`), restrict it with `GEMINI_CORS_ORIGIN`:
 
-- If your Sanity Studio is integrated with your Next.js app (e.g., `/studio` route), CORS is **not needed**
-- If your Sanity Studio is hosted elsewhere (e.g., `studio.yoursite.com` or Sanity Cloud), you **must enable CORS** for this route:
-
-```typescript
-// app/api/gemini/generate-image/route.ts
-import { POST as GeminiPOST } from "sanity-plugin-gemini-ai-images-nextjs/route";
-
-export async function POST(request: Request) {
-  const response = await GeminiPOST(request);
-
-  // Add CORS headers for external Studio
-  response.headers.set(
-    "Access-Control-Allow-Origin",
-    "https://your-studio-domain.com"
-  );
-  response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
-
-  return response;
-}
-
-export async function OPTIONS() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "https://your-studio-domain.com",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    },
-  });
-}
+```bash
+GEMINI_CORS_ORIGIN=https://your-studio.sanity.studio,http://localhost:3333
 ```
 
-### 4. Set Environment Variable
+### 4. Set Environment Variables
 
 ```bash
 # .env.local
 GEMINI_API_KEY=your_api_key_here
 ```
+
+Optional server settings:
+
+| Variable | Purpose |
+| --- | --- |
+| `GEMINI_IMAGE_MODEL` | Model used when the Studio does not send one (default `gemini-nano-banana-2.1`) |
+| `GEMINI_ALLOWED_MODELS` | Comma separated models the endpoint accepts. Requests for other models get a 400. Defaults to all built-in models. |
+| `GEMINI_PLUGIN_API_KEY` | Shared secret the Studio must send as `X-API-Key` (see `apiKey` plugin option) |
+| `GEMINI_CORS_ORIGIN` | Comma separated allowed origins (default `*`) |
 
 Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 
@@ -156,7 +140,7 @@ Full docs: [packages/adapter-nextjs/README.md](./packages/adapter-nextjs/README.
 For Vercel Functions, Netlify Functions, AWS Lambda, etc.
 
 ```bash
-npm install sanity-plugin-gemini-ai-images sanity-plugin-gemini-ai-images-serverless @google/genai
+npm install sanity-plugin-gemini-ai-images sanity-plugin-gemini-ai-images-serverless
 ```
 
 **Vercel:**
@@ -168,13 +152,26 @@ import { handler } from "sanity-plugin-gemini-ai-images-serverless";
 export default handler;
 ```
 
-**Netlify:**
+**Netlify (Functions v2):**
 
 ```typescript
 // netlify/functions/generate-image.ts
 import { handler } from "sanity-plugin-gemini-ai-images-serverless";
 
-export { handler };
+export default handler;
+```
+
+**Custom setup** (allowed models, CORS, concurrency, or your own provider):
+
+```typescript
+import { createImageHandler } from "sanity-plugin-gemini-ai-images-serverless";
+
+export default createImageHandler({
+  allowedModels: ["gemini-nano-banana-2.1", "gemini-3-pro-image"],
+  defaultModel: "gemini-nano-banana-2.1",
+  corsOrigin: ["https://your-studio.sanity.studio"],
+  seriesConcurrency: 2, // generate series images two at a time
+});
 ```
 
 Full docs: [packages/adapter-serverless/README.md](./packages/adapter-serverless/README.md)
@@ -190,7 +187,7 @@ Full docs: [packages/adapter-serverless/README.md](./packages/adapter-serverless
 3. Select "AI Generator" from the picker (alongside Upload, Unsplash, etc.)
 4. Ensure "Generate from Text" mode is selected
 5. Choose a template or write your own prompt
-6. Select aspect ratio
+6. Select model, aspect ratio, and resolution
 7. Click "Generate"
 8. Preview and click "Use This Image"
 
@@ -327,6 +324,36 @@ import { InlineGenerator } from "sanity-plugin-gemini-ai-images";
 
 ## Configuration
 
+### Model Selection
+
+The generator shows a model picker when more than one model is configured. Built-in models:
+
+| Model ID | Name | Resolution options |
+| --- | --- | --- |
+| `gemini-nano-banana-2.1` | Nano Banana 2.1 (default) | 1K, 2K, 4K |
+| `gemini-3-pro-image` | Nano Banana Pro | 1K, 2K, 4K |
+| `gemini-3.1-flash-image` | Nano Banana 2 | 1K, 2K, 4K |
+| `gemini-3.1-flash-lite-image` | Nano Banana 2 Lite | default only |
+| `gemini-2.5-flash-image` | Nano Banana (legacy) | default only |
+
+The server only accepts models in its allow list (`GEMINI_ALLOWED_MODELS`, or all built-in models by default), so editors cannot request a model you have not approved. Keep the plugin `models` option and the server allow list in sync.
+
+To offer a model that is not built in, add it to both:
+
+```typescript
+// sanity.config.ts
+geminiAIImages({
+  models: [
+    "gemini-nano-banana-2.1",
+    { id: "gemini-next-image", title: "Gemini Next", imageSizes: ["1K", "2K"] },
+  ],
+});
+```
+
+```bash
+GEMINI_ALLOWED_MODELS=gemini-nano-banana-2.1,gemini-next-image
+```
+
 ### Full Configuration Options
 
 ```typescript
@@ -338,6 +365,13 @@ export default defineConfig({
     geminiAIImages({
       // API endpoint for generation
       apiEndpoint: "/api/gemini/generate-image",
+
+      // Models editors can pick from (default: all built-in Gemini image models).
+      // Use model IDs, or objects to customise labels: { id, title, description, imageSizes }
+      models: ["gemini-nano-banana-2.1", "gemini-3-pro-image"],
+
+      // Model selected by default (default: 'gemini-nano-banana-2.1')
+      defaultModel: "gemini-nano-banana-2.1",
 
       // Enable standalone tool in sidebar (default: false)
       enableStandaloneTool: true,
@@ -363,7 +397,7 @@ This is a monorepo containing multiple packages:
 ## Requirements
 
 - Node.js >= 20.0.0
-- Sanity Studio v4
+- Sanity Studio v3, v4, v5, or v6
 - Google Gemini API key
 
 ## Security Notes
@@ -371,6 +405,8 @@ This is a monorepo containing multiple packages:
 - API key is stored server-side only (never exposed to client)
 - All generation requests go through your backend API routes
 - No direct client access to Gemini API
+- The endpoint validates prompts, aspect ratios, sizes, and models before calling Gemini
+- `GEMINI_PLUGIN_API_KEY` is compared in constant time. Note that any key configured in the Studio is visible to Studio users, so treat it as a speed bump, not real authentication. Add rate limiting in front of the endpoint for production.
 
 ## Troubleshooting
 
@@ -403,7 +439,7 @@ MIT © Nick Jensen
 Built with:
 
 - [Google Gemini AI](https://ai.google.dev/gemini-api/docs/image-generation)
-- [Sanity Studio v4](https://www.sanity.io/)
+- [Sanity Studio](https://www.sanity.io/)
 
 ## Links
 
@@ -412,4 +448,3 @@ Built with:
 - [Google Gemini API](https://ai.google.dev/gemini-api/docs/image-generation)
 - [Sanity Plugin Directory](https://www.sanity.io/plugins)
 
-# sanity-ai-image-video

@@ -10,12 +10,11 @@ npm install sanity-plugin-gemini-ai-images
 
 ### Compatibility
 
-| Sanity Version | React Version |
-|----------------|---------------|
-| v3.x, v4.x     | ^18.0.0       |
-| v5.x           | ^19.2.0       |
-
-> **Note:** Sanity v5 requires React 19.2 or later. If using Sanity v3 or v4, React 18.x is supported.
+| Sanity Version | @sanity/ui | React Version |
+|----------------|------------|---------------|
+| v3.x, v4.x     | v2         | ^18.0.0 or ^19.0.0 |
+| v5.x           | v3         | ^19.2.0       |
+| v6.x           | v4         | ^19.2.2       |
 
 **Note**: This is the core plugin only. You also need an adapter for your backend framework:
 
@@ -48,6 +47,19 @@ geminiAIImages({
 })
 ```
 
+### Model Selection
+
+```typescript
+geminiAIImages({
+  // Models editors can choose from (default: all built-in Gemini image models)
+  models: ['gemini-nano-banana-2.1', 'gemini-3-pro-image'],
+  // Model selected when the generator opens
+  defaultModel: 'gemini-nano-banana-2.1',
+})
+```
+
+The picker is hidden when only one model is configured. Models that support it also get a 1K/2K/4K resolution picker. Make sure your server allows the same models (`GEMINI_ALLOWED_MODELS`).
+
 ## Exported Components
 
 ### For Advanced Usage
@@ -58,6 +70,9 @@ import {
   PromptBuilder,
   PresetTemplates,
   createGeminiAssetSource,
+  GenerationSettings,
+  geminiImageModels,
+  resolveModels,
   useGeminiGeneration,
   useImageUpload,
   uploadImageToSanity,

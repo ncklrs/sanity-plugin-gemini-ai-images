@@ -58,6 +58,7 @@ export function useBatchUpload(): UseBatchUploadResult {
               image.imageData,
               filename,
               metadata?.[i],
+              image.mimeType,
             )
 
             uploadedAssets.push(asset)

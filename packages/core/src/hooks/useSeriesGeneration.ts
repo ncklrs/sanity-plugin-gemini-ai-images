@@ -1,6 +1,7 @@
 import {useState, useCallback} from 'react'
 import type {SeriesGenerationConfig, SeriesGenerationResult, SeriesImageResult} from '../types.js'
-import {buildSeriesPrompt} from '../lib/consistency-prompts.js'
+import {consistencyPrompts} from '../lib/consistency-prompts.js'
+import {blobToBase64, postGeneration} from '../lib/api.js'
 
 interface UseSeriesGenerationResult {
   generateSeries: (
@@ -30,8 +31,17 @@ export function useSeriesGeneration(
       setError(null)
 
       try {
-        const {quantity, variationType, consistencyLevel, baseStylePrompt, variations, aspectRatio, baseImage} =
-          config
+        const {
+          quantity,
+          variationType,
+          consistencyLevel,
+          baseStylePrompt,
+          variations,
+          aspectRatio,
+          baseImage,
+          model,
+          imageSize,
+        } = config
 
         if (!variations || variations.length === 0) {
           throw new Error('Variations are required for series generation')
@@ -41,68 +51,41 @@ export function useSeriesGeneration(
           throw new Error('Quantity must be between 2 and 10')
         }
 
-        // Build consistency prompt
-        const consistencyPrompt = buildSeriesPrompt(
-          basePrompt,
-          '',
-          consistencyLevel,
-          baseStylePrompt,
-        ).split('Variation:')[0] // Get just the consistency part
+        // The server combines the base prompt, this consistency guidance, and each variation
+        const consistencyPrompt = [
+          consistencyPrompts[consistencyLevel],
+          baseStylePrompt ? `Style anchor: ${baseStylePrompt}` : '',
+        ]
+          .filter(Boolean)
+          .join('. ')
 
-        // Convert base image to base64 if provided
-        let baseImageData: string | undefined
-        if (baseImage) {
-          const reader = new FileReader()
-          baseImageData = await new Promise<string>((resolve, reject) => {
-            reader.onloadend = () => {
-              const result = reader.result as string
-              // Extract base64 data (remove data:image/...;base64, prefix)
-              const base64 = result.split(',')[1]
-              resolve(base64)
-            }
-            reader.onerror = reject
-            reader.readAsDataURL(baseImage)
-          })
-        }
+        const reference = baseImage ? await blobToBase64(baseImage) : undefined
 
-        // Make API request with timeout
+        // Series run sequentially on the server, so allow roughly a minute per image
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minutes
+        const timeoutId = setTimeout(() => controller.abort(), Math.max(120_000, quantity * 60_000))
 
         try {
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-          }
-
-          if (apiKey) {
-            headers['X-API-Key'] = apiKey
-          }
-
-          const response = await fetch(apiEndpoint, {
-            method: 'POST',
-            headers,
-            signal: controller.signal,
-            body: JSON.stringify({
+          const data = await postGeneration<any>(
+            apiEndpoint,
+            {
               prompt: basePrompt,
+              model,
               aspectRatio,
-              baseImage: baseImageData,
-              mode: baseImageData ? 'edit' : 'generate',
+              imageSize,
+              baseImage: reference?.data,
+              baseImageMimeType: reference?.mimeType,
+              mode: reference ? 'edit' : 'generate',
               series: {
                 quantity,
                 consistencyPrompt,
                 variations: variations.slice(0, quantity),
               },
-            }),
-          })
+            },
+            {apiKey, signal: controller.signal, fallbackError: 'Series generation failed'},
+          )
 
           clearTimeout(timeoutId)
-
-          if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.error || 'Series generation failed')
-          }
-
-          const data = await response.json()
 
           if (!data.images || data.images.length === 0) {
             throw new Error('No images generated')
@@ -126,12 +109,16 @@ export function useSeriesGeneration(
               quantity,
               variationType,
               consistencyLevel,
+              model: data.metadata?.model ?? model,
             },
           }
 
           return result
         } catch (fetchError) {
           clearTimeout(timeoutId)
+          if (controller.signal.aborted) {
+            throw new Error('Series generation timed out. Try fewer images or a faster model.')
+          }
           throw fetchError
         }
       } catch (err) {

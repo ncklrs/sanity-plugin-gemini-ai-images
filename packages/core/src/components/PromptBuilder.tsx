@@ -1,5 +1,6 @@
 import {useState, useEffect} from 'react'
-import {Stack, TextInput, Select, Text, Card} from '@sanity/ui'
+import {TextInput, Select, Text, Card} from '@sanity/ui'
+import {Stack} from './ui/compat.js'
 
 interface PromptBuilderProps {
   onPromptChange: (prompt: string) => void

@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm test
+      - run: npm run build
+
+  # Type-check the Studio plugin against older Sanity / @sanity/ui majors
+  compat:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sanity: '3'
+            ui: '2'
+          - sanity: '5'
+            ui: '3'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Type-check against sanity@${{ matrix.sanity }} and @sanity/ui@${{ matrix.ui }}
+        run: |
+          mkdir -p /tmp/compat && cp -r packages/core/src tsconfig.base.json /tmp/compat/
+          cd /tmp/compat
+          echo '{"extends":"./tsconfig.base.json","compilerOptions":{"noEmit":true,"rootDir":"./src"},"include":["src"]}' > tsconfig.json
+          echo '{"name":"compat","private":true,"type":"module"}' > package.json
+          npm install --no-audit --no-fund sanity@${{ matrix.sanity }} @sanity/ui@${{ matrix.ui }} react@19 react-dom@19 styled-components@6 @types/react@19 typescript@5.9
+          npx tsc -p .

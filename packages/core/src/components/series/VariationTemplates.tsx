@@ -1,6 +1,6 @@
-import {Box, Button, Card, Flex, Label, Stack, Tab, TabList, TabPanel, Text, TextInput} from '@sanity/ui'
+import {Box, Button, Card, Flex, Label, Tab, TabPanel, Text, TextInput} from '@sanity/ui'
+import {AddIcon, Stack, TabList} from '../ui/compat.js'
 import {useCallback, useState} from 'react'
-import {AddIcon} from '@sanity/icons'
 import {variationTemplates, type VariationTemplate} from '../../lib/variation-templates.js'
 import type {VariationType} from '../../types.js'
 
@@ -27,7 +27,6 @@ export function VariationTemplates({
 
   const handleSelectTemplate = useCallback(
     (template: VariationTemplate) => {
-      console.log('Template selected:', template.name, 'Variations:', template.variations.slice(0, quantity))
       // Use the template's variations, limited to quantity
       onVariationsChange(template.variations.slice(0, quantity))
       // Switch to custom tab to show selected variations

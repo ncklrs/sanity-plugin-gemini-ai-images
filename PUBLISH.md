@@ -10,47 +10,36 @@ This guide covers how to publish the Sanity Gemini AI Images plugin to npm.
 
 ## Pre-Publishing Checklist
 
-- [ ] All tests pass (currently manual testing)
-- [ ] TypeScript builds without errors (`npm run build`)
+- [ ] `npm test` passes
+- [ ] `npm run type-check` and `npm run build` pass
+- [ ] CI compat jobs pass (Sanity 3, 5, 6)
+- [ ] Manual Studio smoke test (see the release plan in the PR)
 - [ ] Version numbers updated in all package.json files
 - [ ] README files are complete and accurate
-- [ ] CHANGELOG.md created (optional but recommended)
-- [ ] GitHub repository created and pushed
+- [ ] CHANGELOG.md updated
 
 ## Publishing Steps
 
-### 1. Create GitHub Repository
+### 1. Automated Publish (recommended)
+
+Publishing runs from `.github/workflows/publish.yml` when a GitHub release is published:
+
+1. Merge the release PR to `main`
+2. Create a GitHub release with tag `vX.Y.Z` (use the core package version)
+3. The workflow type-checks, tests, builds, and publishes with npm provenance
+4. Packages whose version is already on npm are skipped
+
+The `NPM_TOKEN` repository secret must be an npm automation token with publish rights.
+
+### 2. Manual Publish
+
+Publish in dependency order (the Next.js adapter depends on the serverless adapter):
 
 ```bash
-cd /Users/nickjensen/Dev2/sanity-plugin-gemini-ai-images
-git init
-git add .
-git commit -m "Initial commit: Sanity Gemini AI Image Generator plugin"
-git branch -M main
-git remote add origin https://github.com/ncklrs/sanity-plugin-gemini-ai-images.git
-git push -u origin main
-```
-
-### 2. Publish to npm
-
-Publish packages in this order (dependencies first):
-
-**Core Package:**
-```bash
-cd packages/core
-npm publish --access public
-```
-
-**Next.js Adapter:**
-```bash
-cd ../adapter-nextjs
-npm publish --access public
-```
-
-**Serverless Adapter:**
-```bash
-cd ../adapter-serverless
-npm publish --access public
+npm ci && npm run type-check && npm test && npm run build
+npm publish ./packages/adapter-serverless --access public
+npm publish ./packages/core --access public
+npm publish ./packages/adapter-nextjs --access public
 ```
 
 ### 3. Verify Published Packages
@@ -65,7 +54,7 @@ Check that packages are available:
 Create a test project and verify installation works:
 
 ```bash
-npm install sanity-plugin-gemini-ai-images sanity-plugin-gemini-ai-images-nextjs @google/genai
+npm install sanity-plugin-gemini-ai-images sanity-plugin-gemini-ai-images-nextjs
 ```
 
 ### 5. Submit to Sanity Plugin Directory
@@ -97,17 +86,12 @@ When releasing new versions:
 3. **Commit and Tag:**
    ```bash
    git add .
-   git commit -m "Release v1.0.1"
-   git tag v1.0.1
+   git commit -m "Release v1.5.0"
+   git tag v1.5.0
    git push origin main --tags
    ```
 
-4. **Publish Updated Packages:**
-   ```bash
-   cd packages/core && npm publish
-   cd ../adapter-nextjs && npm publish
-   cd ../adapter-serverless && npm publish
-   ```
+4. **Publish:** create a GitHub release for the tag, which triggers the publish workflow.
 
 ## npm Package Names
 

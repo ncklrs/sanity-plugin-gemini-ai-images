@@ -1,4 +1,5 @@
-import {Box, Button, Card, Flex, Heading, Stack, Text} from '@sanity/ui'
+import {Box, Button, Card, Flex, Heading, Text} from '@sanity/ui'
+import {Stack} from '../ui/compat.js'
 import type {GenerationSession} from '../../types.js'
 
 interface GenerationHistoryProps {

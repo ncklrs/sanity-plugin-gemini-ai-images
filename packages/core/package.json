@@ -1,7 +1,7 @@
 {
   "name": "sanity-plugin-gemini-ai-images",
-  "version": "1.4.0",
-  "description": "AI-powered image generation for Sanity Studio using Google Gemini with series generation support",
+  "version": "1.5.0",
+  "description": "AI-powered image generation for Sanity Studio using Google Gemini, with model selection and series generation",
   "keywords": [
     "sanity",
     "sanity-plugin",
@@ -42,21 +42,22 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "lint": "eslint .",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {},
   "devDependencies": {
-    "@sanity/ui": "^3.0.0",
-    "@types/react": "^19.0.0",
-    "react": "^19.0.0",
-    "sanity": "^3.0.0",
+    "@sanity/ui": "^4.4.0",
+    "@types/react": "^19.2.0",
+    "react": "^19.2.2",
+    "react-dom": "^19.2.2",
+    "sanity": "^6.18.0",
+    "styled-components": "^6.1.15",
     "typescript": "^5.9.0"
   },
   "peerDependencies": {
-    "@sanity/ui": "^2.0.0 || ^3.0.0",
-    "react": "^18.0.0 || ^19.2.0",
-    "sanity": "^3.0.0 || ^4.0.0 || ^5.0.0"
+    "@sanity/ui": "^2.0.0 || ^3.0.0 || ^4.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "sanity": "^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0"
   },
   "engines": {
     "node": ">=20.0.0"

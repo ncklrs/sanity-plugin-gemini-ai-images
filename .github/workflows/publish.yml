@@ -18,19 +18,33 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run type check
+      - name: Type check
         run: npm run type-check
+
+      - name: Test
+        run: npm test
 
       - name: Build packages
         run: npm run build
 
+      # Publish the serverless adapter first since the Next.js adapter depends on it.
+      # Versions that are already on npm are skipped, so unchanged packages do not fail the run.
       - name: Publish packages
-        run: npm publish --workspaces --access public
+        run: |
+          for dir in packages/adapter-serverless packages/core packages/adapter-nextjs; do
+            name=$(node -p "require('./$dir/package.json').name")
+            version=$(node -p "require('./$dir/package.json').version")
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "Skipping $name@$version (already published)"
+            else
+              npm publish "./$dir" --access public --provenance
+            fi
+          done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

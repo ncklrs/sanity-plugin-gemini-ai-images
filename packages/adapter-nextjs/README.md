@@ -5,7 +5,7 @@ Next.js adapter for the Sanity Gemini AI Image Generator plugin.
 ## Installation
 
 ```bash
-npm install sanity-plugin-gemini-ai-images sanity-plugin-gemini-ai-images-nextjs @google/genai
+npm install sanity-plugin-gemini-ai-images sanity-plugin-gemini-ai-images-nextjs
 ```
 
 ## Setup
@@ -26,86 +26,58 @@ export default defineConfig({
 
 ### 2. Create API Route
 
-**IMPORTANT: CORS Configuration Required**
-
-Even if Sanity Studio is embedded in your Next.js app, you **must configure CORS headers** on the API route in production. This is because Sanity Studio loads in an iframe and makes cross-origin requests to your API endpoints.
-
-**App Router (Next.js 13+):**
+**App Router:**
 
 ```typescript
 // app/api/gemini/generate-image/route.ts
-import {POST as BasePOST} from 'sanity-plugin-gemini-ai-images-nextjs/route'
-import {NextResponse} from 'next/server'
+export {POST, OPTIONS} from 'sanity-plugin-gemini-ai-images-nextjs/route'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders,
-  })
-}
-
-export async function POST(request: Request) {
-  const response = await BasePOST(request)
-
-  const headers = new Headers(response.headers)
-  Object.entries(corsHeaders).forEach(([key, value]) => {
-    headers.set(key, value)
-  })
-
-  return new NextResponse(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  })
-}
+// Image generation can take a while. Raise the limit on Vercel.
+export const maxDuration = 300
 ```
 
-**For Production**: Replace `'*'` in `Access-Control-Allow-Origin` with your specific domain(s) for better security:
+Every response includes CORS headers (allowing `Content-Type`, `Authorization`, and `X-API-Key`), and `OPTIONS` answers preflight requests. The default origin is `*`; set `GEMINI_CORS_ORIGIN` to restrict it when your Studio runs on another origin (for example `*.sanity.studio` or `localhost:3333`).
+
+**Custom configuration:**
 
 ```typescript
-const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://yourdomain.com',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-}
+// app/api/gemini/generate-image/route.ts
+import {createImageHandler} from 'sanity-plugin-gemini-ai-images-nextjs'
+
+const handler = createImageHandler({
+  allowedModels: ['gemini-nano-banana-2.1', 'gemini-3-pro-image'],
+  corsOrigin: ['https://your-studio.sanity.studio', 'http://localhost:3333'],
+})
+
+export const POST = handler
+export const OPTIONS = handler
 ```
 
-**Pages Router (Next.js 12):**
+See the [serverless adapter README](../adapter-serverless/README.md) for all options, including custom providers.
+
+**Pages Router:**
 
 ```typescript
 // pages/api/gemini/generate-image.ts
+import type {NextApiRequest, NextApiResponse} from 'next'
 import {POST} from 'sanity-plugin-gemini-ai-images-nextjs/route'
 
-export default async function handler(req: any, res: any) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+export const config = {api: {bodyParser: {sizeLimit: '20mb'}}}
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({error: 'Method not allowed'})
-  }
-
-  const request = new Request(`http://localhost:3000${req.url}`, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(req.body),
-  })
-
-  const response = await POST(request)
-  const data = await response.json()
-
-  return res.status(response.status).json(data)
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const response = await POST(
+    new Request(`http://localhost${req.url}`, {
+      method: req.method,
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': String(req.headers['x-api-key'] ?? ''),
+        origin: String(req.headers.origin ?? ''),
+      },
+      body: req.method === 'POST' ? JSON.stringify(req.body) : undefined,
+    }),
+  )
+  response.headers.forEach((value, key) => res.setHeader(key, value))
+  res.status(response.status).send(await response.text())
 }
 ```
 
@@ -114,11 +86,12 @@ export default async function handler(req: any, res: any) {
 ```bash
 # .env.local
 GEMINI_API_KEY=your_api_key_here
-NEXT_PUBLIC_SANITY_PROJECT_ID=your_project_id
-NEXT_PUBLIC_SANITY_DATASET=production
 
-# Optional: API Key for securing the endpoint
+# Optional
+# GEMINI_IMAGE_MODEL=gemini-nano-banana-2.1
+# GEMINI_ALLOWED_MODELS=gemini-nano-banana-2.1,gemini-3-pro-image
 # GEMINI_PLUGIN_API_KEY=your_secret_api_key_here
+# GEMINI_CORS_ORIGIN=https://your-studio.sanity.studio
 ```
 
 Get your Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
@@ -153,7 +126,7 @@ NEXT_PUBLIC_GEMINI_PLUGIN_API_KEY=your_secret_server_key
 - If not set, no API key verification is performed (backward compatible)
 - The plugin sends the configured `apiKey` as `X-API-Key` header when provided
 
-**Note**: This provides basic protection. For production, see [SECURITY.md](../../SECURITY.md) for more robust approaches including rate limiting, origin checking, and session-based auth.
+**Note**: A key configured in the Studio is visible to Studio users, so this is basic protection only. For production, also restrict `GEMINI_CORS_ORIGIN` and `GEMINI_ALLOWED_MODELS`, and add rate limiting.
 
 ## That's It!
 
@@ -181,52 +154,16 @@ geminiAIImages({
 
 - Next.js 14.0.0 or higher (App Router recommended, supports Next.js 14, 15, and 16)
 - Node.js 20.0.0 or higher
-- Sanity Studio v4
+- Sanity Studio v3 to v6
 
 ## Security
 
-**Important:** Your API endpoint makes requests to Google's Gemini API using your API key, which can incur costs. You should secure this endpoint to prevent unauthorized access.
+Your endpoint spends your Gemini credits. For production:
 
-### Quick Security Setup
-
-For production use, we recommend implementing one or more of these security measures:
-
-1. **Custom API Keys** (Recommended)
-   - Generate API keys for your users
-   - Require `X-API-Key` header on requests
-   - Track usage per key
-
-2. **Origin Checking**
-   - Restrict to your domain instead of using `*` in CORS
-   - Add IP allowlisting for additional protection
-
-3. **Rate Limiting**
-   - Limit requests per user/IP/API key
-   - Use services like Upstash or Vercel rate limiting
-
-4. **Session Authentication**
-   - Use your existing auth system (NextAuth, etc.)
-   - Verify user session before processing
-
-### Complete Security Guide
-
-See [SECURITY.md](../../SECURITY.md) for:
-- Detailed implementation examples
-- Production-ready code samples
-- Comparison of different approaches
-- Rate limiting setup
-- Complete working examples
-
-### Development vs Production
-
-The examples in this README use `'*'` for CORS to simplify development. **Always replace this with your specific domain(s) in production:**
-
-```typescript
-const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://yourdomain.com',
-  // or for multiple domains:
-  // 'Access-Control-Allow-Origin': request.headers.get('origin'),
-}
+1. Restrict `GEMINI_CORS_ORIGIN` to your Studio's origin
+2. Limit `GEMINI_ALLOWED_MODELS` to the models you want to pay for
+3. Set `GEMINI_PLUGIN_API_KEY` and the plugin `apiKey` option
+4. Add rate limiting (for example Upstash or Vercel WAF) or your own session check in a custom route
 
 ## Troubleshooting
 
@@ -245,10 +182,8 @@ Make sure your route file is at the correct path:
 ### CORS Errors
 
 If you see CORS errors in the browser console:
-- Ensure you've added the `OPTIONS` handler
-- Verify `Access-Control-Allow-Origin` header is set correctly
-- For development, using `'*'` is fine
-- For production, use your specific domain(s)
+- Ensure you export `OPTIONS` as well as `POST`
+- Check `GEMINI_CORS_ORIGIN` includes your Studio's exact origin (scheme, host, and port)
 - If Studio and Next.js run on different ports, include both origins
 
 ## License

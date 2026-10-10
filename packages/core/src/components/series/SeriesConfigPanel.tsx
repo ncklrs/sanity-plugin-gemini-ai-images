@@ -1,9 +1,12 @@
-import {Box, Card, Flex, Label, Select, Stack, Text} from '@sanity/ui'
+import {Box, Card, Flex, Label, Select, Text} from '@sanity/ui'
+import {Stack} from '../ui/compat.js'
 import {useCallback} from 'react'
 import type {VariationType, ConsistencyLevel} from '../../types.js'
 
 interface SeriesConfigPanelProps {
   quantity: number
+  /** Upper bound for the quantity slider (2-10) */
+  maxQuantity?: number
   variationType: VariationType
   consistencyLevel: ConsistencyLevel
   onQuantityChange: (quantity: number) => void
@@ -13,6 +16,7 @@ interface SeriesConfigPanelProps {
 
 export function SeriesConfigPanel({
   quantity,
+  maxQuantity = 10,
   variationType,
   consistencyLevel,
   onQuantityChange,
@@ -59,7 +63,7 @@ export function SeriesConfigPanel({
           <input
             type="range"
             min="2"
-            max="10"
+            max={Math.min(Math.max(maxQuantity, 2), 10)}
             step="1"
             value={quantity}
             onChange={handleQuantityChange}
