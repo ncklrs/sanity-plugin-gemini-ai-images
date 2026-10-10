@@ -12,16 +12,24 @@ export function useImageUpload() {
     async (
       imageData: string,
       filename: string,
-      metadata?: GenerationMetadata
+      metadata?: GenerationMetadata,
+      mimeType: string = 'image/png',
     ): Promise<SanityImageAsset | null> => {
       setUploading(true)
       setError(null)
 
       try {
-        const asset = await uploadImageToSanity(client, imageData, filename, metadata)
+        const asset = await uploadImageToSanity(
+          client,
+          imageData,
+          filename,
+          metadata,
+          mimeType,
+        )
         return asset
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to upload image'
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to upload image'
         setError(errorMessage)
         console.error('Image upload failed:', err)
         return null
@@ -29,7 +37,7 @@ export function useImageUpload() {
         setUploading(false)
       }
     },
-    [client]
+    [client],
   )
 
   return {

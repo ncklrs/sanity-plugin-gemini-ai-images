@@ -1,5 +1,10 @@
+import {requestHeaders, type RequestHeaders} from '../lib/request.js'
 import {useState, useCallback} from 'react'
-import type {SeriesGenerationConfig, SeriesGenerationResult, SeriesImageResult} from '../types.js'
+import type {
+  SeriesGenerationConfig,
+  SeriesGenerationResult,
+  SeriesImageResult,
+} from '../types.js'
 import {buildSeriesPrompt} from '../lib/consistency-prompts.js'
 
 interface UseSeriesGenerationResult {
@@ -14,7 +19,8 @@ interface UseSeriesGenerationResult {
 
 export function useSeriesGeneration(
   apiEndpoint: string,
-  apiKey?: string
+  apiKey?: string,
+  getHeaders?: RequestHeaders,
 ): UseSeriesGenerationResult {
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -30,8 +36,20 @@ export function useSeriesGeneration(
       setError(null)
 
       try {
-        const {quantity, variationType, consistencyLevel, baseStylePrompt, variations, aspectRatio, baseImage} =
-          config
+        const {
+          quantity,
+          variationType,
+          consistencyLevel,
+          baseStylePrompt,
+          variations,
+          aspectRatio,
+          baseImage,
+          model,
+          resolution,
+          references,
+          grounding,
+          brandPresetId,
+        } = config
 
         if (!variations || variations.length === 0) {
           throw new Error('Variations are required for series generation')
@@ -70,21 +88,21 @@ export function useSeriesGeneration(
         const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minutes
 
         try {
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-          }
-
-          if (apiKey) {
-            headers['X-API-Key'] = apiKey
-          }
-
+          const headers = await requestHeaders(apiKey, getHeaders)
           const response = await fetch(apiEndpoint, {
             method: 'POST',
+            credentials: 'include',
             headers,
             signal: controller.signal,
             body: JSON.stringify({
               prompt: basePrompt,
               aspectRatio,
+              model,
+              resolution,
+              references,
+              grounding,
+              brandPresetId,
+              baseImageMimeType: baseImage?.type,
               baseImage: baseImageData,
               mode: baseImageData ? 'edit' : 'generate',
               series: {
@@ -111,8 +129,10 @@ export function useSeriesGeneration(
           setProgress(100)
 
           const result: SeriesGenerationResult = {
+            errors: data.errors,
             images: data.images.map(
               (img: any, index: number): SeriesImageResult => ({
+                ...img,
                 imageData: img.imageData,
                 mimeType: img.mimeType,
                 variation: img.variation,
@@ -120,9 +140,11 @@ export function useSeriesGeneration(
               }),
             ),
             metadata: {
+              model: data.metadata?.model || model,
               basePrompt,
               stylePrompt: consistencyPrompt,
-              generatedAt: data.metadata?.generatedAt || new Date().toISOString(),
+              generatedAt:
+                data.metadata?.generatedAt || new Date().toISOString(),
               quantity,
               variationType,
               consistencyLevel,
@@ -135,14 +157,15 @@ export function useSeriesGeneration(
           throw fetchError
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Series generation failed'
+        const errorMessage =
+          err instanceof Error ? err.message : 'Series generation failed'
         setError(errorMessage)
         throw err
       } finally {
         setLoading(false)
       }
     },
-    [apiEndpoint, apiKey],
+    [apiEndpoint, apiKey, getHeaders],
   )
 
   return {

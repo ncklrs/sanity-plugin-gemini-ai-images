@@ -1,6 +1,6 @@
 {
   "name": "sanity-plugin-gemini-ai-images",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "AI-powered image generation for Sanity Studio using Google Gemini with series generation support",
   "keywords": [
     "sanity",
@@ -28,7 +28,8 @@
     ".": {
       "source": "./src/index.ts",
       "import": "./dist/index.js",
-      "default": "./dist/index.js"
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     },
     "./package.json": "./package.json"
   },
@@ -45,20 +46,23 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@sanity/icons": "^5.2.3",
+    "sanity-plugin-gemini-ai-images-contracts": "^1.0.0"
+  },
   "devDependencies": {
-    "@sanity/ui": "^3.0.0",
-    "@types/react": "^19.0.0",
-    "react": "^19.0.0",
-    "sanity": "^3.0.0",
-    "typescript": "^5.9.0"
+    "@sanity/ui": "^4.4.0",
+    "@types/react": "^19.3.0",
+    "react": "^19.3.0",
+    "sanity": "^6.18.0",
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "@sanity/ui": "^2.0.0 || ^3.0.0",
-    "react": "^18.0.0 || ^19.2.0",
-    "sanity": "^3.0.0 || ^4.0.0 || ^5.0.0"
+    "@sanity/ui": "^3.0.0 || ^4.0.0",
+    "react": "^19.2.3",
+    "sanity": "^5.0.0 || ^6.0.0"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.19 <22 || >=22.12"
   }
 }

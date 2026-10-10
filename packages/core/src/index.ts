@@ -1,5 +1,5 @@
 import {definePlugin} from 'sanity'
-import {ImageIcon} from '@sanity/icons'
+import {ImageIcon} from '@sanity/icons/Image'
 import {createElement} from 'react'
 import {createGeminiAssetSource} from './components/GeminiAssetSource.js'
 import {ImageStudioTool} from './components/standalone/ImageStudioTool.js'
@@ -38,7 +38,7 @@ export const geminiAIImages = definePlugin<GeminiPluginConfig | void>((config) =
       image: {
         assetSources: (previousAssetSources) => {
           // Add Gemini AI Generator to the list of asset sources
-          return [...previousAssetSources, createGeminiAssetSource(apiEndpoint, apiKey)]
+          return [...previousAssetSources, createGeminiAssetSource(apiEndpoint, apiKey, config || undefined)]
         },
       },
     },
@@ -50,7 +50,7 @@ export const geminiAIImages = definePlugin<GeminiPluginConfig | void>((config) =
           name: 'ai-image-studio',
           title: 'AI Image Studio',
           icon: ImageIcon,
-          component: () => createElement(ImageStudioTool, {apiEndpoint, apiKey}),
+          component: () => createElement(ImageStudioTool, {...config, apiEndpoint, apiKey}),
         },
       ]
     })(),
@@ -94,3 +94,16 @@ export {promptTemplates, templateCategories} from './lib/prompt-templates.js'
 export {editPromptTemplates, editTemplateCategories} from './lib/edit-prompt-templates.js'
 export {variationTemplates, getVariationsByType, getAllVariationTemplates, getVariationTemplate} from './lib/variation-templates.js'
 export {consistencyPrompts, getConsistencyPrompt, buildSeriesPrompt} from './lib/consistency-prompts.js'
+
+export {imageModels, defaultImageModel} from './lib/image-models.js'
+export * from './lib/editorial.js'
+export * from './lib/schema.js'
+export {useEditorialHistory} from './hooks/useEditorialHistory.js'
+export {CreativeControls} from './components/CreativeControls.js'
+export {JobPanel} from './components/JobPanel.js'
+export {useGenerationJob} from './hooks/useGenerationJob.js'
+export type {JobSnapshot} from './hooks/useGenerationJob.js'
+export type {RequestHeaders} from './lib/request.js'
+export {VideoStudio} from './components/VideoStudio.js'
+export {ImageGalleryInput} from './components/field/ImageGalleryInput.js'
+export {AssetHistory} from './components/AssetHistory.js'

@@ -26,4 +26,4 @@
  * That's it! The AI Generator will appear in your Sanity Studio image picker.
  */
 
-export {POST} from './route'
+export * from './route.js'

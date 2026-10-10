@@ -1,3 +1,4 @@
+import {mediaRequest, type RequestHeaders} from '../lib/request.js'
 import {useState, useCallback} from 'react'
 import type {ImageConfig, ImageResult} from '../types.js'
 
@@ -7,44 +8,31 @@ import type {ImageConfig, ImageResult} from '../types.js'
  */
 export function useGeminiGeneration(
   apiEndpoint: string = '/api/gemini/generate-image',
-  apiKey?: string
+  apiKey?: string,
+  getHeaders?: RequestHeaders,
 ) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const generateImage = useCallback(
-    async (prompt: string, config?: ImageConfig): Promise<ImageResult | null> => {
+    async (
+      prompt: string,
+      config?: ImageConfig,
+    ): Promise<ImageResult | null> => {
       setLoading(true)
       setError(null)
 
       try {
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        }
-
-        if (apiKey) {
-          headers['X-API-Key'] = apiKey
-        }
-
-        const response = await fetch(apiEndpoint, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            prompt,
-            aspectRatio: config?.aspectRatio,
-            mode: 'generate',
-          }),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || 'Failed to generate image')
-        }
-
-        const result = await response.json()
+        const result = await mediaRequest(
+          apiEndpoint,
+          {prompt, ...config, mode: 'generate'},
+          apiKey,
+          getHeaders,
+        )
         return result as ImageResult
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to generate image'
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to generate image'
         setError(errorMessage)
         console.error('Image generation failed:', err)
         return null
@@ -52,14 +40,14 @@ export function useGeminiGeneration(
         setLoading(false)
       }
     },
-    [apiEndpoint, apiKey]
+    [apiEndpoint, apiKey, getHeaders],
   )
 
   const editImage = useCallback(
     async (
       baseImage: File | Blob,
       prompt: string,
-      config?: ImageConfig
+      config?: ImageConfig,
     ): Promise<ImageResult | null> => {
       setLoading(true)
       setError(null)
@@ -68,34 +56,22 @@ export function useGeminiGeneration(
         // Convert image to base64
         const base64Image = await fileToBase64(baseImage)
 
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        }
-
-        if (apiKey) {
-          headers['X-API-Key'] = apiKey
-        }
-
-        const response = await fetch(apiEndpoint, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
+        const result = await mediaRequest(
+          apiEndpoint,
+          {
             prompt,
-            aspectRatio: config?.aspectRatio,
+            ...config,
             mode: 'edit',
             baseImage: base64Image,
-          }),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || 'Failed to edit image')
-        }
-
-        const result = await response.json()
+            baseImageMimeType: baseImage.type,
+          },
+          apiKey,
+          getHeaders,
+        )
         return result as ImageResult
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to edit image'
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to edit image'
         setError(errorMessage)
         console.error('Image editing failed:', err)
         return null
@@ -103,7 +79,7 @@ export function useGeminiGeneration(
         setLoading(false)
       }
     },
-    [apiEndpoint, apiKey]
+    [apiEndpoint, apiKey, getHeaders],
   )
 
   return {

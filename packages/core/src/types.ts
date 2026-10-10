@@ -1,10 +1,38 @@
-export type AspectRatio = '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9'
+import type {
+  Resolution,
+  ReferenceImage,
+} from 'sanity-plugin-gemini-ai-images-contracts'
+import type {RequestHeaders} from './lib/request.js'
+import type {GeminiImageModel} from './lib/image-models.js'
+export type {GeminiImageModel} from './lib/image-models.js'
+
+export type AspectRatio =
+  | '1:1'
+  | '2:3'
+  | '3:2'
+  | '3:4'
+  | '4:3'
+  | '4:5'
+  | '5:4'
+  | '9:16'
+  | '16:9'
+  | '21:9'
 
 export interface ImageConfig {
+  resolution?: Resolution
+  references?: ReferenceImage[]
+  grounding?: boolean
+  brandPresetId?: string
+  model?: GeminiImageModel
   aspectRatio?: AspectRatio
 }
 
 export interface ImageResult {
+  model?: GeminiImageModel
+  usage?: Record<string, unknown>
+  sources?: Array<{title: string; url: string}>
+  estimatedCostUsd?: number
+  providerRequestId?: string
   imageData: string // Base64 encoded
   mimeType: string
 }
@@ -17,6 +45,7 @@ export interface GenerationMetadata {
 
 export interface SanityImageAsset {
   _id: string
+  editorial?: {title: string; alt: string; caption: string}
   _type: 'sanity.imageAsset'
   url: string
   metadata?: {
@@ -32,7 +61,15 @@ export interface PromptTemplate {
   description: string
   prompt: string | ((input: string, context?: string) => string)
   aspectRatio?: AspectRatio
-  category: 'product' | 'lifestyle' | 'hero' | 'background' | 'marketing' | 'effects' | 'cleanup' | 'creative'
+  category:
+    | 'product'
+    | 'lifestyle'
+    | 'hero'
+    | 'background'
+    | 'marketing'
+    | 'effects'
+    | 'cleanup'
+    | 'creative'
 }
 
 export type GenerationMode = 'generate' | 'edit'
@@ -45,7 +82,8 @@ export interface ImageInputValue {
   }
 }
 
-export type VariationType = 'angle' | 'context' | 'background' | 'lighting' | 'custom'
+export type VariationType =
+  'angle' | 'context' | 'background' | 'lighting' | 'custom'
 export type ConsistencyLevel = 'strict' | 'moderate' | 'loose'
 
 export interface SeriesGenerationConfig extends ImageConfig {
@@ -58,13 +96,17 @@ export interface SeriesGenerationConfig extends ImageConfig {
 }
 
 export interface SeriesImageResult extends ImageResult {
+  assetId?: string
+  url?: string
   variation: string // The variation prompt used
   index: number // Position in series
 }
 
 export interface SeriesGenerationResult {
+  errors?: Array<{index: number; variation: string; error: string}>
   images: SeriesImageResult[]
   metadata: {
+    model?: GeminiImageModel
     basePrompt: string
     stylePrompt: string
     generatedAt: string
@@ -82,6 +124,23 @@ export interface GenerationSession {
 }
 
 export interface GeminiPluginConfig {
+  /** Dynamic user/session authentication. Never return provider keys. */
+  getRequestHeaders?: RequestHeaders
+  jobsEndpoint?: string
+  referenceEndpoint?: string
+  suggestionsEndpoint?: string
+  enableHistory?: boolean
+  enableAssetReferences?: boolean
+  enableBrandPresets?: boolean
+  enableVideo?: boolean
+  promptInstructions?: string
+  documentContext?: Record<string, string>
+  onImagesGenerated?: (assets: SanityImageAsset[]) => void
+  documentId?: string
+  /** Default image generation model. */
+  defaultModel?: GeminiImageModel
+  /** Models offered in the selector; must contain at least one supported model. */
+  availableModels?: GeminiImageModel[]
   /**
    * API endpoint for image generation
    * @default '/api/gemini/generate-image'

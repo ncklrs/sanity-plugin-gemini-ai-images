@@ -13,12 +13,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
@@ -27,10 +27,27 @@ jobs:
       - name: Run type check
         run: npm run type-check
 
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
       - name: Build packages
         run: npm run build
 
+      - name: Check package imports
+        run: npm run test:packages
+
+      - name: Check examples
+        run: npm run test:examples
+
       - name: Publish packages
-        run: npm publish --workspaces --access public
+        run: |
+          npm publish -w sanity-plugin-gemini-ai-images-contracts --access public
+          npm publish -w sanity-plugin-gemini-ai-images-engine --access public
+          npm publish -w sanity-plugin-gemini-ai-images --access public
+          npm publish -w sanity-plugin-gemini-ai-images-nextjs --access public
+          npm publish -w sanity-plugin-gemini-ai-images-serverless --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

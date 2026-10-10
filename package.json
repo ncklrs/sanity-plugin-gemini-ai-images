@@ -8,19 +8,30 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build -w sanity-plugin-gemini-ai-images-contracts && npm run build -w sanity-plugin-gemini-ai-images-engine && npm run build -w sanity-plugin-gemini-ai-images -w sanity-plugin-gemini-ai-images-nextjs -w sanity-plugin-gemini-ai-images-serverless",
     "dev": "npm run dev --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "type-check": "npm run type-check --workspaces --if-present",
-    "clean": "rm -rf packages/*/dist packages/*/node_modules examples/*/node_modules node_modules"
+    "lint": "eslint packages tests",
+    "type-check": "npm run build -w sanity-plugin-gemini-ai-images-contracts && npm run build -w sanity-plugin-gemini-ai-images-engine && npm run type-check --workspaces --if-present",
+    "clean": "rm -rf packages/*/dist packages/*/node_modules examples/*/node_modules node_modules",
+    "test": "vitest run",
+    "test:packages": "node tests/package-imports.mjs",
+    "test:compatibility": "node tests/compatibility/run.mjs",
+    "test:examples": "tsc -p examples/integration/tsconfig.json",
+    "test:backend-compatibility": "node tests/compatibility/backend.mjs"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^19.0.0",
-    "typescript": "^5.9.0"
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "typescript": "^6.0.3",
+    "eslint": "^10.12.0",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.3",
+    "jsdom": "^30.1.2",
+    "@testing-library/react": "^16.3.3",
+    "react-dom": "^19.3.0"
   },
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.22.2",
     "npm": ">=10.0.0"
   }
 }

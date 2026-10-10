@@ -1,4 +1,5 @@
-import {Card, Stack, Text, Grid, Button} from '@sanity/ui'
+import {Stack, Grid} from '../lib/ui-compat.js'
+import {Card, Text, Button} from '@sanity/ui'
 import {editPromptTemplates, editTemplateCategories} from '../lib/edit-prompt-templates.js'
 import type {AspectRatio} from '../types.js'
 import {useState} from 'react'
@@ -15,13 +16,13 @@ export function EditPromptTemplates({onSelectTemplate}: EditPromptTemplatesProps
   )
 
   return (
-    <Stack space={3}>
+    <Stack gap={3}>
       <Text size={1} weight="semibold">
         Edit Templates
       </Text>
 
       {/* Category Tabs */}
-      <Grid columns={4} gap={2}>
+      <Grid gridTemplateColumns={4} gap={2}>
         {Object.entries(editTemplateCategories).map(([key, label]) => (
           <Button
             key={key}
@@ -35,7 +36,7 @@ export function EditPromptTemplates({onSelectTemplate}: EditPromptTemplatesProps
       </Grid>
 
       {/* Templates */}
-      <Grid columns={2} gap={3}>
+      <Grid gridTemplateColumns={2} gap={3}>
         {filteredTemplates.map(([key, template]) => (
           <Card
             key={key}
@@ -54,7 +55,7 @@ export function EditPromptTemplates({onSelectTemplate}: EditPromptTemplatesProps
               })
             }}
           >
-            <Stack space={2}>
+            <Stack gap={2}>
               <Text size={1} weight="semibold">
                 {template.name}
               </Text>

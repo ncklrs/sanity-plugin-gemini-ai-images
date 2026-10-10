@@ -1,5 +1,6 @@
+import {Stack} from '../lib/ui-compat.js'
 import {useState, useEffect} from 'react'
-import {Stack, TextInput, Select, Text, Card} from '@sanity/ui'
+import {TextInput, Select, Text, Card} from '@sanity/ui'
 
 interface PromptBuilderProps {
   onPromptChange: (prompt: string) => void
@@ -71,14 +72,14 @@ export function PromptBuilder({onPromptChange}: PromptBuilderProps) {
   }, [subject, style, lighting, angle, mood, onPromptChange])
 
   return (
-    <Stack space={3}>
+    <Stack gap={3}>
       <Text size={1} weight="semibold">
         Prompt Builder
       </Text>
 
       <Card padding={3} border radius={2}>
-        <Stack space={3}>
-          <Stack space={2}>
+        <Stack gap={3}>
+          <Stack gap={2}>
             <Text size={1} weight="semibold">
               Subject
             </Text>
@@ -89,11 +90,15 @@ export function PromptBuilder({onPromptChange}: PromptBuilderProps) {
             />
           </Stack>
 
-          <Stack space={2}>
+          <Stack gap={2}>
             <Text size={1} weight="semibold">
               Style
             </Text>
-            <Select value={style} onChange={(e) => setStyle(e.currentTarget.value)}>
+            <Select
+              aria-label="Visual style"
+              value={style}
+              onChange={(e) => setStyle(e.currentTarget.value)}
+            >
               <option value="photorealistic">Photorealistic</option>
               <option value="minimalist">Minimalist</option>
               <option value="artistic">Artistic</option>
@@ -101,11 +106,15 @@ export function PromptBuilder({onPromptChange}: PromptBuilderProps) {
             </Select>
           </Stack>
 
-          <Stack space={2}>
+          <Stack gap={2}>
             <Text size={1} weight="semibold">
               Lighting
             </Text>
-            <Select value={lighting} onChange={(e) => setLighting(e.currentTarget.value)}>
+            <Select
+              aria-label="Lighting"
+              value={lighting}
+              onChange={(e) => setLighting(e.currentTarget.value)}
+            >
               <option value="natural">Natural</option>
               <option value="studio">Studio</option>
               <option value="dramatic">Dramatic</option>
@@ -113,11 +122,15 @@ export function PromptBuilder({onPromptChange}: PromptBuilderProps) {
             </Select>
           </Stack>
 
-          <Stack space={2}>
+          <Stack gap={2}>
             <Text size={1} weight="semibold">
               Camera Angle
             </Text>
-            <Select value={angle} onChange={(e) => setAngle(e.currentTarget.value)}>
+            <Select
+              aria-label="Camera angle"
+              value={angle}
+              onChange={(e) => setAngle(e.currentTarget.value)}
+            >
               <option value="eye-level">Eye Level</option>
               <option value="elevated">Elevated</option>
               <option value="low-angle">Low Angle</option>
@@ -125,11 +138,15 @@ export function PromptBuilder({onPromptChange}: PromptBuilderProps) {
             </Select>
           </Stack>
 
-          <Stack space={2}>
+          <Stack gap={2}>
             <Text size={1} weight="semibold">
               Mood
             </Text>
-            <Select value={mood} onChange={(e) => setMood(e.currentTarget.value)}>
+            <Select
+              aria-label="Mood"
+              value={mood}
+              onChange={(e) => setMood(e.currentTarget.value)}
+            >
               <option value="neutral">Neutral</option>
               <option value="warm">Warm & Inviting</option>
               <option value="cool">Cool & Sophisticated</option>

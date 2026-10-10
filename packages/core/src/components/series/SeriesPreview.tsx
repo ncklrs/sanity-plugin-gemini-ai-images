@@ -1,5 +1,6 @@
-import {Box, Button, Card, Checkbox, Flex, Grid, Label, Stack, Text} from '@sanity/ui'
-import {useCallback, useState} from 'react'
+import {Grid, Stack} from '../../lib/ui-compat.js'
+import {Box, Button, Card, Checkbox, Flex, Label, Text} from '@sanity/ui'
+import {useCallback, useEffect, useState} from 'react'
 import type {SeriesImageResult} from '../../types.js'
 
 interface SeriesPreviewProps {
@@ -8,10 +9,17 @@ interface SeriesPreviewProps {
   uploading?: boolean
 }
 
-export function SeriesPreview({images, onUploadSelected, uploading = false}: SeriesPreviewProps) {
+export function SeriesPreview({
+  images,
+  onUploadSelected,
+  uploading = false,
+}: SeriesPreviewProps) {
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
     new Set(images.map((_, i) => i)),
   )
+  useEffect(() => {
+    setSelectedIndices(new Set(images.map((_, index) => index)))
+  }, [images])
 
   const handleToggleSelection = useCallback((index: number) => {
     setSelectedIndices((current) => {
@@ -41,9 +49,9 @@ export function SeriesPreview({images, onUploadSelected, uploading = false}: Ser
   const selectedCount = selectedIndices.size
 
   return (
-    <Stack space={4}>
+    <Stack gap={4}>
       <Card padding={4} radius={2} shadow={1}>
-        <Stack space={4}>
+        <Stack gap={4}>
           <Flex align="center" justify="space-between">
             <Label size={1} weight="semibold">
               Generated Series ({images.length} images)
@@ -67,10 +75,10 @@ export function SeriesPreview({images, onUploadSelected, uploading = false}: Ser
             </Flex>
           </Flex>
 
-          <Grid columns={[2, 3, 4]} gap={3}>
+          <Grid gridTemplateColumns={[2, 3, 4]} gap={3}>
             {images.map((image, index) => (
               <Card key={index} radius={2} overflow="hidden" tone="transparent">
-                <Stack space={2}>
+                <Stack gap={2}>
                   <Box
                     style={{
                       position: 'relative',
@@ -83,7 +91,10 @@ export function SeriesPreview({images, onUploadSelected, uploading = false}: Ser
                     }}
                   >
                     <img
-                      src={`data:${image.mimeType};base64,${image.imageData}`}
+                      src={
+                        image.url ||
+                        `data:${image.mimeType};base64,${image.imageData}`
+                      }
                       alt={`Generated image ${index + 1}`}
                       style={{
                         position: 'absolute',
@@ -109,7 +120,11 @@ export function SeriesPreview({images, onUploadSelected, uploading = false}: Ser
                       />
                     </Box>
                   </Box>
-                  <Text size={0} muted style={{fontSize: '11px', lineHeight: '1.3'}}>
+                  <Text
+                    size={0}
+                    muted
+                    style={{fontSize: '11px', lineHeight: '1.3'}}
+                  >
                     {image.variation}
                   </Text>
                 </Stack>
@@ -122,7 +137,11 @@ export function SeriesPreview({images, onUploadSelected, uploading = false}: Ser
               Selected: {selectedCount} of {images.length}
             </Text>
             <Button
-              text={uploading ? 'Uploading...' : `Upload Selected (${selectedCount})`}
+              text={
+                uploading
+                  ? 'Uploading...'
+                  : `Upload Selected (${selectedCount})`
+              }
               tone="primary"
               onClick={handleUpload}
               disabled={selectedCount === 0 || uploading}

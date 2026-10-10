@@ -1,4 +1,5 @@
-import {Box, Button, Card, Flex, Heading, Stack, Text} from '@sanity/ui'
+import {Stack} from '../../lib/ui-compat.js'
+import {Box, Button, Card, Flex, Heading, Text} from '@sanity/ui'
 import type {GenerationSession} from '../../types.js'
 
 interface GenerationHistoryProps {
@@ -27,7 +28,7 @@ export function GenerationHistory({
 }: GenerationHistoryProps) {
 
   return (
-    <Stack space={4}>
+    <Stack gap={4}>
       <Flex align="center" justify="space-between">
         <Heading size={2}>Generation History</Heading>
         <Button text="Close" mode="ghost" onClick={onClose} />
@@ -41,10 +42,10 @@ export function GenerationHistory({
         </Card>
       )}
 
-      <Stack space={3}>
+      <Stack gap={3}>
         {sessions.map((session) => (
           <Card key={session.id} padding={4} radius={2} shadow={1}>
-            <Stack space={3}>
+            <Stack gap={3}>
               <Flex align="center" justify="space-between">
                 <Box flex={1}>
                   <Text size={1} weight="semibold">
